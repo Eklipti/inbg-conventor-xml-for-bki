@@ -1,7 +1,10 @@
 import openpyxl
 import logging
+import warnings
 from pathlib import Path
 import datetime
+
+warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 def parse_active_sheet(file_path: Path, logger: logging.Logger) -> dict:
     logger.debug(f"Начинаем парсинг данных из файла: {file_path}")
