@@ -3,6 +3,7 @@ import logging
 import sys
 from pathlib import Path
 import openpyxl
+import convertor
 
 def setup_logger(is_verbose: bool):
     """Настройка логирования. Если не verbose, то скрываем всё, кроме критических ошибок."""
@@ -38,7 +39,7 @@ def validate_excel(file_path: Path, logger: logging.Logger) -> bool:
         logger.error(f"Не удалось прочитать файл. Убедитесь, что это корректный формат Excel. Ошибка: {e}")
         return False
 
-    required_sheets = {"Активные", "Закрытые"}
+    required_sheets = {"Активные"}
     current_sheets = set(sheet_names)
     
     if not required_sheets.issubset(current_sheets):
@@ -61,3 +62,5 @@ def run():
     file_path = Path(args.file)
     if not validate_excel(file_path, logger):
         sys.exit(1)
+    
+    convertor.run_conversion(file_path, logger)
