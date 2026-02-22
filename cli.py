@@ -52,6 +52,7 @@ def validate_excel(file_path: Path, logger: logging.Logger) -> bool:
 def run():
     parser = argparse.ArgumentParser(description="Утилита для обработки Excel файлов.")
     
+    parser.add_argument("-j", "--json", type=str, default="config.json", help="Путь к конфигурационному файлу JSON")
     parser.add_argument("-i", "--input", type=str, required=True, help="Путь к файлу xls/xlsx для обработки")
     parser.add_argument("-v", "--verbose", action="store_true", help="Включить подробный вывод логов")
     
@@ -61,8 +62,9 @@ def run():
     logger.debug("Запуск в консольном режиме...")
     
     file_path = Path(args.input) 
+    config_path = Path(args.json)
     
     if not validate_excel(file_path, logger):
         sys.exit(1)
         
-    convertor.run_conversion(file_path, logger)
+    convertor.run_conversion(file_path, config_path, logger)
