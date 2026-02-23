@@ -55,8 +55,39 @@ def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger):
     }
     
     root = ET.Element("Document", attr)
-    # Здесь в будущем будет цикл по data_dict для добавления дочерних элементов
     
+    # === БЛОК SOURCE (Источник) ===
+    source_elem = ET.SubElement(root, "Source")
+    org_source = ET.SubElement(source_elem, "FL_46_UL_36_OrgSource")
+    # TODO: Сюда добавим теги ИНН, ОГРН и т.д. по формату блока
+    
+    # === БЛОК DATA (Данные) ===
+    data_elem = ET.SubElement(root, "Data")
+    
+    for key, row in data_dict.items():
+        if key == 0:
+            continue
+            
+        subject_fl = ET.SubElement(data_elem, "Subject_FL")
+        
+        # --- Титульная часть ---
+        title = ET.SubElement(subject_fl, "Title")
+        
+        # Блок ФЛ_1 и ФЛ_4 (Имя и Документ)
+        fl_1_4_group = ET.SubElement(title, "FL_1_4_Group")
+        # TODO: Заполнить тегами ФИО и Паспорта
+        
+        # Блок ФЛ_2 и ФЛ_5 (тег остается пустым)
+        fl_2_5_group = ET.SubElement(title, "FL_2_5_Group")
+        
+        # Блок ФЛ_3 (Дата и место рождения)
+        fl_3_birth = ET.SubElement(title, "FL_3_Birth")
+        # TODO: Заполнить <BirthDate> и т.д.
+        
+        # --- События (Events) ---
+        events = ET.SubElement(subject_fl, "Events")
+        # TODO: Здесь будем формировать теги событий 2.3, 2.5 и т.д.
+
     save_xml(root, "okb_output.xml", logger)
 
 def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger):
