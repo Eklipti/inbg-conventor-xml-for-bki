@@ -120,6 +120,7 @@ def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger):
     now = datetime.now()
     subjects_count = str(len(data_dict) - 1)
     
+    scoring_conf = config.get("bureaus", {}).get("scoring", {})
     reg_num = scoring_conf.get("reg_num", "2637")
 
     attr = {
