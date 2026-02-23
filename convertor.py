@@ -30,6 +30,29 @@ def save_xml(root_element: ET.Element, filename: str, logger: logging.Logger):
         logger.error(f"Ошибка при сохранении {filename}: {e}")
 
 
+def build_source_block(parent_element: ET.Element, config: dict, date_str: str):
+    """Универсальная функция для создания блока Source во всех форматах."""
+    org = config.get("organization", {})
+    
+    source_elem = ET.SubElement(parent_element, "Source")
+    org_source = ET.SubElement(source_elem, "FL_46_UL_36_OrgSource")
+    
+    ET.SubElement(org_source, "sourceCode").text = "1"
+    ET.SubElement(org_source, "sourceRegistrationFact_1")
+    ET.SubElement(org_source, "fullName").text = org.get("fullName", "")
+    ET.SubElement(org_source, "shortName").text = org.get("shortName", "")
+    ET.SubElement(org_source, "otherName").text = org.get("otherName", "")
+    ET.SubElement(org_source, "sourceDateStart").text = org.get("sourceDateStart", "")
+    ET.SubElement(org_source, "regNum").text = org.get("ogrn", "")
+    
+    tax_group = ET.SubElement(org_source, "TaxNum_group_FL_46_UL_36_OrgSource")
+    ET.SubElement(tax_group, "taxCode").text = org.get("taxCode", "")
+    ET.SubElement(tax_group, "taxNum").text = org.get("inn", "")
+    
+    # передаем строкой, так как форматы дат могут отличаться в других местах, но тут нужен YYYY-MM-DD
+    ET.SubElement(org_source, "sourceCreditInfoDate").text = date_str
+
+
 def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger):
     logger.debug("Генерация XML для ОКБ.")
     org = config.get("organization", {})
@@ -57,23 +80,8 @@ def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger):
     root = ET.Element("Document", attr)
     
     # === БЛОК SOURCE (Источник) ===
-    source_elem = ET.SubElement(root, "Source")
-    org_source = ET.SubElement(source_elem, "FL_46_UL_36_OrgSource")
-    
-    ET.SubElement(org_source, "sourceCode").text = "1"
-    ET.SubElement(org_source, "sourceRegistrationFact_1")
-    ET.SubElement(org_source, "fullName").text = org.get("fullName", "")
-    ET.SubElement(org_source, "shortName").text = org.get("shortName", "")
-    ET.SubElement(org_source, "otherName").text = org.get("otherName", "")
-    ET.SubElement(org_source, "sourceDateStart").text = org.get("sourceDateStart", "")
-    ET.SubElement(org_source, "regNum").text = org.get("ogrn", "")
+    build_source_block(root, config, date_doc_str)
 
-    tax_group = ET.SubElement(org_source, "TaxNum_group_FL_46_UL_36_OrgSource")
-    ET.SubElement(tax_group, "taxCode").text = org.get("taxCode", "")
-    ET.SubElement(tax_group, "taxNum").text = org.get("inn", "")
-    
-    ET.SubElement(org_source, "sourceCreditInfoDate").text = now.strftime("%Y-%m-%d")    
-    
     # === БЛОК DATA (Данные) ===
     data_elem = ET.SubElement(root, "Data")
     
@@ -122,6 +130,10 @@ def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger):
     }
     
     root = ET.Element("Document", attr)
+
+    # === БЛОК SOURCE (Источник) ===
+    build_source_block(root, config, date_doc_str)
+
     save_xml(root, "scoring_output.xml", logger)
 
 def generate_xml_kbrs(data_dict: dict, config: dict, logger: logging.Logger):
@@ -146,6 +158,10 @@ def generate_xml_kbrs(data_dict: dict, config: dict, logger: logging.Logger):
     }
     
     root = ET.Element("Document", attr)
+
+    # === БЛОК SOURCE (Источник) ===
+    build_source_block(root, config, date_doc_str)
+
     save_xml(root, "kbrs_output.xml", logger)
 
 def generate_xml_nbki(data_dict: dict, config: dict, logger: logging.Logger):
@@ -168,6 +184,10 @@ def generate_xml_nbki(data_dict: dict, config: dict, logger: logging.Logger):
     }
     
     root = ET.Element("Document", attr)
+
+    # === БЛОК SOURCE (Источник) ===
+    build_source_block(root, config, date_doc_str)
+
     save_xml(root, "nbki_output.xml", logger)
 
 def run_conversion(file_path: Path, config_path: Path, logger: logging.Logger):
