@@ -115,6 +115,94 @@ def build_title_block(subject_fl: ET.Element, row: dict):
     ET.SubElement(fl_3_birth, "countryCode").text = "643"
     ET.SubElement(fl_3_birth, "birthPlace").text = row.get("Место рождения", "")
 
+def build_event_2_3(events_elem: ET.Element, row: dict, date_doc_str: str, bureau: str):
+    """Формирование блока Событие 2.3 (Изменение)."""
+    
+    event_2_3 = ET.SubElement(events_elem, "FL_Event_2_3")
+    
+    fl_17 = ET.SubElement(event_2_3, "FL_17_DealUid")
+    ET.SubElement(fl_17, "uid").text = row.get("Уникальный идентификатор договора (сделки) БАНКА", "")
+    ET.SubElement(fl_17, "openDate").text = row.get("Дата согласия на обработку ПДН (дата договора)", "")
+    
+    fl_18 = ET.SubElement(event_2_3, "FL_18_Deal")
+    # TODO: Сюда пойдут данные, которые зависят от БКИ
+    
+    fl_19 = ET.SubElement(event_2_3, "FL_19_Amount")
+    ET.SubElement(fl_19, "sum").text = row.get("Общая сумма долга", "")
+    ET.SubElement(fl_19, "currency").text = "RUB"
+    ET.SubElement(fl_19, "calcDate").text = row.get("Дата создания (дата передачи цессии)", "")
+    
+    fl_19_1 = ET.SubElement(event_2_3, "FL_19_1_AmountInfo")
+    ET.SubElement(fl_19_1, "securityFact_0")
+    
+    fl_21 = ET.SubElement(event_2_3, "FL_21_PaymentTerms")
+    ET.SubElement(fl_21, "mainPaySum").text = "0.00"
+    ET.SubElement(fl_21, "percentPaySum").text = "0.00"
+    
+    group_25_28 = ET.SubElement(event_2_3, "FL_25_26_27_28_Group")
+    ET.SubElement(group_25_28, "lastPayExist_0")
+    ET.SubElement(group_25_28, "calcDate").text = date_doc_str
+    ET.SubElement(group_25_28, "exist_1")
+    
+    debt_remains = row.get("Остаток долга", "")
+    
+    fl_25 = ET.SubElement(group_25_28, "FL_25_Debt")
+    ET.SubElement(fl_25, "debtSum").text = debt_remains
+    ET.SubElement(fl_25, "debtMainSum").text = debt_remains
+    ET.SubElement(fl_25, "debtPercentSum").text = "0.00"
+    ET.SubElement(fl_25, "debtOtherSum").text = "0.00"
+    ET.SubElement(fl_25, "graceUnconfExist_0")
+    ET.SubElement(fl_25, "currency").text = "RUB"
+    
+    fl_26 = ET.SubElement(group_25_28, "FL_26_DebtDue")
+    ET.SubElement(fl_26, "debtDueExist_0")
+    
+    fl_27 = ET.SubElement(group_25_28, "FL_27_DebtOverdue")
+    ET.SubElement(fl_27, "missFact_1")
+    ET.SubElement(fl_27, "debtOverdueSum").text = debt_remains
+    ET.SubElement(fl_27, "debtOverdueMainSum").text = debt_remains
+    ET.SubElement(fl_27, "debtOverduePercentSum").text = "0.00"
+    ET.SubElement(fl_27, "debtOverdueOtherSum").text = "0.00"
+    
+    miss_date = row.get("Дата передачи (обновления)", "")
+    ET.SubElement(fl_27, "debtOverdueStartDate").text = miss_date
+    ET.SubElement(fl_27, "mainMissDate").text = miss_date
+    ET.SubElement(fl_27, "percentMissDate").text = miss_date
+    
+    miss_days = calculate_days_difference(miss_date, date_doc_str)
+    ET.SubElement(fl_27, "missDuration").text = miss_days
+    ET.SubElement(fl_27, "repaidMissDuration").text = miss_days
+    
+    fl_28 = ET.SubElement(group_25_28, "FL_28_Payment")
+    last_pay = row.get("Сумма последнего возрата", "")
+    ET.SubElement(fl_28, "paymentSum").text = last_pay
+    ET.SubElement(fl_28, "paymentMainSum").text = last_pay
+    ET.SubElement(fl_28, "paymentPercentSum").text = "0.00"
+    ET.SubElement(fl_28, "paymentOtherSum").text = "0.00"
+    ET.SubElement(fl_28, "totalSum").text = last_pay
+    ET.SubElement(fl_28, "totalMainSum").text = last_pay
+    ET.SubElement(fl_28, "totalPercentSum").text = last_pay
+    ET.SubElement(fl_28, "totalOtherSum").text = last_pay
+    # TODO: Сюда пойдут данные по выплатам, зависящие от БКИ
+    
+    ET.SubElement(ET.SubElement(event_2_3, "FL_20_JointDebtors"), "exist_0")
+    ET.SubElement(ET.SubElement(event_2_3, "FL_36_1_ProvisionPaymentOffset"), "exist_0")
+    
+    fl_54 = ET.SubElement(event_2_3, "FL_54_Accounting")
+    ET.SubElement(fl_54, "exist_1")
+    ET.SubElement(fl_54, "minInterest").text = "0.00"
+    ET.SubElement(fl_54, "maxInterest").text = "0.00"
+    ET.SubElement(fl_54, "supportExist_0")
+    ET.SubElement(fl_54, "calcDate").text = date_doc_str
+    
+    fl_56 = ET.SubElement(event_2_3, "FL_56_Participation")
+    ET.SubElement(fl_56, "role").text = "1"
+    ET.SubElement(fl_56, "kindCode").text = "99"
+    ET.SubElement(fl_56, "uid").text = row.get("Уникальный идентификатор договора (сделки) БАНКА", "")
+    ET.SubElement(fl_56, "fundDate").text = row.get("Дата согласия на обработку ПДН (дата договора)", "")
+    ET.SubElement(fl_56, "overdueExist_1")
+    ET.SubElement(fl_56, "stopExist_0")
+
 
 def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger):
     logger.debug("Генерация XML для ОКБ.")
@@ -153,13 +241,15 @@ def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger):
             continue
             
         subject_fl = ET.SubElement(data_elem, "Subject_FL")
-
         build_title_block(subject_fl, row)
         
         events = ET.SubElement(subject_fl, "Events")
         
-        # TODO: Здесь будем добавлять теги событий 2.3 или 2.5
-        # В зависимости от логики статусов
+        status = row.get("Статус долга (Операция)", "").strip().lower()
+        if status == "edit":
+            build_event_2_3(events, row, date_doc_str, bureau="okb")
+        elif status == "close":
+            pass # TODO: Здесь будет вызов build_event_2_5
 
     save_xml(root, f"{reg_num}.xml", logger)
 
@@ -197,13 +287,15 @@ def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger):
             continue
             
         subject_fl = ET.SubElement(data_elem, "Subject_FL")
-
         build_title_block(subject_fl, row)
         
         events = ET.SubElement(subject_fl, "Events")
         
-        # TODO: Здесь будем добавлять теги событий 2.3 или 2.5
-        # В зависимости от логики статусов
+        status = row.get("Статус долга (Операция)", "").strip().lower()
+        if status == "edit":
+            build_event_2_3(events, row, date_doc_str, bureau="okb")
+        elif status == "close":
+            pass # TODO: Здесь будет вызов build_event_2_5
 
     save_xml(root, f"DMH_FCH_{date_doc_str}_{reg_num}.xml", logger)
 
@@ -241,13 +333,15 @@ def generate_xml_kbrs(data_dict: dict, config: dict, logger: logging.Logger):
             continue
             
         subject_fl = ET.SubElement(data_elem, "Subject_FL")
-
         build_title_block(subject_fl, row)
         
         events = ET.SubElement(subject_fl, "Events")
         
-        # TODO: Здесь будем добавлять теги событий 2.3 или 2.5
-        # В зависимости от логики статусов
+        status = row.get("Статус долга (Операция)", "").strip().lower()
+        if status == "edit":
+            build_event_2_3(events, row, date_doc_str, bureau="okb")
+        elif status == "close":
+            pass # TODO: Здесь будет вызов build_event_2_5
 
     save_xml(root, f"{reg_num}.xml", logger)
 
@@ -283,14 +377,16 @@ def generate_xml_nbki(data_dict: dict, config: dict, logger: logging.Logger):
             continue
             
         subject_fl = ET.SubElement(data_elem, "Subject_FL")
-
         build_title_block(subject_fl, row)
         
         events = ET.SubElement(subject_fl, "Events")
         
-        # TODO: Здесь будем добавлять теги событий 2.3 или 2.5
-        # В зависимости от логики статусов
-        
+        status = row.get("Статус долга (Операция)", "").strip().lower()
+        if status == "edit":
+            build_event_2_3(events, row, date_doc_str, bureau="okb")
+        elif status == "close":
+            pass # TODO: Здесь будет вызов build_event_2_5
+                    
     save_xml(root, f"{reg_num}.xml", logger)
 
 def run_conversion(file_path: Path, config_path: Path, logger: logging.Logger):
