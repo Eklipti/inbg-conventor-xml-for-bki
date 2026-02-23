@@ -59,7 +59,20 @@ def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger):
     # === БЛОК SOURCE (Источник) ===
     source_elem = ET.SubElement(root, "Source")
     org_source = ET.SubElement(source_elem, "FL_46_UL_36_OrgSource")
-    # TODO: Сюда добавим теги ИНН, ОГРН и т.д. по формату блока
+    
+    ET.SubElement(org_source, "sourceCode").text = "1"
+    ET.SubElement(org_source, "sourceRegistrationFact_1")
+    ET.SubElement(org_source, "fullName").text = org.get("fullName", "")
+    ET.SubElement(org_source, "shortName").text = org.get("shortName", "")
+    ET.SubElement(org_source, "otherName").text = org.get("otherName", "")
+    ET.SubElement(org_source, "sourceDateStart").text = org.get("sourceDateStart", "")
+    ET.SubElement(org_source, "regNum").text = org.get("ogrn", "")
+
+    tax_group = ET.SubElement(org_source, "TaxNum_group_FL_46_UL_36_OrgSource")
+    ET.SubElement(tax_group, "taxCode").text = org.get("taxCode", "")
+    ET.SubElement(tax_group, "taxNum").text = org.get("inn", "")
+    
+    ET.SubElement(org_source, "sourceCreditInfoDate").text = now.strftime("%Y-%m-%d")    
     
     # === БЛОК DATA (Данные) ===
     data_elem = ET.SubElement(root, "Data")
