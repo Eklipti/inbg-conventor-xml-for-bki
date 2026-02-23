@@ -109,7 +109,7 @@ def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger):
         events = ET.SubElement(subject_fl, "Events")
         # TODO: Здесь будем формировать теги событий 2.3, 2.5 и т.д.
 
-    save_xml(root, "okb_output.xml", logger)
+    save_xml(root, f"{reg_num}.xml", logger)
 
 def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger):
     logger.debug("Генерация XML для Скоринга.")
@@ -117,16 +117,18 @@ def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger):
     now = datetime.now()
     subjects_count = str(len(data_dict) - 1)
     
+    reg_num = scoring_conf.get("reg_num", "2637")
+
     attr = {
         "schemaVersion": "4.1",
         "inn": org.get("inn", ""),
         "ogrn": org.get("ogrn", ""),
         "sourceID": "DMH",
-        "regNumberDoc": "2637",
+        "regNumberDoc": reg_num,
         "dateDoc": now.strftime("%Y-%m-%d"),
         "subjectsCount": subjects_count,
         "groupBlocksCount": subjects_count,
-        "regNumberDocInaccept": "2637"
+        "regNumberDocInaccept": reg_num
     }
     
     root = ET.Element("Document", attr)
@@ -134,7 +136,7 @@ def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger):
     # === БЛОК SOURCE (Источник) ===
     build_source_block(root, config, date_doc_str)
 
-    save_xml(root, "scoring_output.xml", logger)
+    save_xml(root, f"DMH_FCH_{date_doc_str}_{reg_num}.xml", logger)
 
 def generate_xml_kbrs(data_dict: dict, config: dict, logger: logging.Logger):
     logger.debug("Генерация XML для КБРС.")
@@ -162,7 +164,7 @@ def generate_xml_kbrs(data_dict: dict, config: dict, logger: logging.Logger):
     # === БЛОК SOURCE (Источник) ===
     build_source_block(root, config, date_doc_str)
 
-    save_xml(root, "kbrs_output.xml", logger)
+    save_xml(root, f"{reg_num}.xml", logger)
 
 def generate_xml_nbki(data_dict: dict, config: dict, logger: logging.Logger):
     logger.debug("Генерация XML для НБКИ.")
@@ -188,7 +190,7 @@ def generate_xml_nbki(data_dict: dict, config: dict, logger: logging.Logger):
     # === БЛОК SOURCE (Источник) ===
     build_source_block(root, config, date_doc_str)
 
-    save_xml(root, "nbki_output.xml", logger)
+    save_xml(root, f"{reg_num}.xml", logger)
 
 def run_conversion(file_path: Path, config_path: Path, logger: logging.Logger):
     logger.info("Запуск основного процесса конвертации...")
