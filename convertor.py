@@ -55,6 +55,44 @@ def build_source_block(parent_element: ET.Element, config: dict, date_str: str):
     # передаем строкой, так как форматы дат могут отличаться в других местах, но тут нужен YYYY-MM-DD
     ET.SubElement(org_source, "sourceCreditInfoDate").text = date_str
 
+def build_title_block(subject_fl: ET.Element, row: dict):
+    """Универсальная функция для создания блока Title (ФИО, паспорт, рождение)."""
+    title = ET.SubElement(subject_fl, "Title")
+    
+    # === Блок ФЛ 1 и ФЛ 4 (Имя и Документ) ===
+    fl_1_4_group = ET.SubElement(title, "FL_1_4_Group")
+    
+    fl_1_name = ET.SubElement(fl_1_4_group, "FL_1_Name")
+    ET.SubElement(fl_1_name, "lastName").text = row.get("Фамилия", "")
+    ET.SubElement(fl_1_name, "firstName").text = row.get("Имя", "")
+    # Если отчества нет, .text будет пустой строкой - пустой тег
+    ET.SubElement(fl_1_name, "middleName").text = row.get("Отчество", "")
+    
+    fl_4_doc = ET.SubElement(fl_1_4_group, "FL_4_Doc")
+    ET.SubElement(fl_4_doc, "countryCode").text = "643"  # Россия
+    ET.SubElement(fl_4_doc, "docCode").text = "21"       # Паспорт РФ
+    ET.SubElement(fl_4_doc, "docSeries").text = row.get("Серия", "")
+    ET.SubElement(fl_4_doc, "docNum").text = row.get("Номер", "")
+    ET.SubElement(fl_4_doc, "issueDate").text = row.get("Дата выдачи", "")
+    ET.SubElement(fl_4_doc, "docIssuer").text = row.get("Кем выдан", "")
+    ET.SubElement(fl_4_doc, "deptCode").text = "000-000" # hardcore
+    ET.SubElement(fl_4_doc, "foreignerCode").text = "0"
+    
+    # === Блок ФЛ 2 и ФЛ 5 (Предыдущие данные в реестре отсутствуют) ===
+    fl_2_5_group = ET.SubElement(title, "FL_2_5_Group")
+    
+    fl_2_prev_name = ET.SubElement(fl_2_5_group, "FL_2_PrevName")
+    ET.SubElement(fl_2_prev_name, "prevNameFlag_0")
+    
+    fl_5_prev_doc = ET.SubElement(fl_2_5_group, "FL_5_PrevDoc")
+    ET.SubElement(fl_5_prev_doc, "prevDocFact_0")
+    
+    # === Блок ФЛ 3 (Рождение) ===
+    fl_3_birth = ET.SubElement(title, "FL_3_Birth")
+    ET.SubElement(fl_3_birth, "birthDate").text = row.get("Дата рождения", "")
+    ET.SubElement(fl_3_birth, "countryCode").text = "643"
+    ET.SubElement(fl_3_birth, "birthPlace").text = row.get("Место рождения", "")
+
 
 def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger):
     logger.debug("Генерация XML для ОКБ.")
@@ -93,24 +131,13 @@ def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger):
             continue
             
         subject_fl = ET.SubElement(data_elem, "Subject_FL")
+
+        build_title_block(subject_fl, row)
         
-        # --- Титульная часть ---
-        title = ET.SubElement(subject_fl, "Title")
-        
-        # Блок ФЛ_1 и ФЛ_4 (Имя и Документ)
-        fl_1_4_group = ET.SubElement(title, "FL_1_4_Group")
-        # TODO: Заполнить тегами ФИО и Паспорта
-        
-        # Блок ФЛ_2 и ФЛ_5 (тег остается пустым)
-        fl_2_5_group = ET.SubElement(title, "FL_2_5_Group")
-        
-        # Блок ФЛ_3 (Дата и место рождения)
-        fl_3_birth = ET.SubElement(title, "FL_3_Birth")
-        # TODO: Заполнить <BirthDate> и т.д.
-        
-        # --- События (Events) ---
         events = ET.SubElement(subject_fl, "Events")
-        # TODO: Здесь будем формировать теги событий 2.3, 2.5 и т.д.
+        
+        # TODO: Здесь будем добавлять теги событий 2.3 или 2.5
+        # В зависимости от логики статусов
 
     save_xml(root, f"{reg_num}.xml", logger)
 
@@ -140,6 +167,22 @@ def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger):
     # === БЛОК SOURCE (Источник) ===
     build_source_block(root, config, date_doc_str)
 
+    # === БЛОК DATA (Данные) ===
+    data_elem = ET.SubElement(root, "Data")
+    
+    for key, row in data_dict.items():
+        if key == 0:
+            continue
+            
+        subject_fl = ET.SubElement(data_elem, "Subject_FL")
+
+        build_title_block(subject_fl, row)
+        
+        events = ET.SubElement(subject_fl, "Events")
+        
+        # TODO: Здесь будем добавлять теги событий 2.3 или 2.5
+        # В зависимости от логики статусов
+
     save_xml(root, f"DMH_FCH_{date_doc_str}_{reg_num}.xml", logger)
 
 def generate_xml_kbrs(data_dict: dict, config: dict, logger: logging.Logger):
@@ -168,6 +211,22 @@ def generate_xml_kbrs(data_dict: dict, config: dict, logger: logging.Logger):
     # === БЛОК SOURCE (Источник) ===
     build_source_block(root, config, date_doc_str)
 
+    # === БЛОК DATA (Данные) ===
+    data_elem = ET.SubElement(root, "Data")
+    
+    for key, row in data_dict.items():
+        if key == 0:
+            continue
+            
+        subject_fl = ET.SubElement(data_elem, "Subject_FL")
+
+        build_title_block(subject_fl, row)
+        
+        events = ET.SubElement(subject_fl, "Events")
+        
+        # TODO: Здесь будем добавлять теги событий 2.3 или 2.5
+        # В зависимости от логики статусов
+
     save_xml(root, f"{reg_num}.xml", logger)
 
 def generate_xml_nbki(data_dict: dict, config: dict, logger: logging.Logger):
@@ -194,6 +253,22 @@ def generate_xml_nbki(data_dict: dict, config: dict, logger: logging.Logger):
     # === БЛОК SOURCE (Источник) ===
     build_source_block(root, config, date_doc_str)
 
+    # === БЛОК DATA (Данные) ===
+    data_elem = ET.SubElement(root, "Data")
+    
+    for key, row in data_dict.items():
+        if key == 0:
+            continue
+            
+        subject_fl = ET.SubElement(data_elem, "Subject_FL")
+
+        build_title_block(subject_fl, row)
+        
+        events = ET.SubElement(subject_fl, "Events")
+        
+        # TODO: Здесь будем добавлять теги событий 2.3 или 2.5
+        # В зависимости от логики статусов
+        
     save_xml(root, f"{reg_num}.xml", logger)
 
 def run_conversion(file_path: Path, config_path: Path, logger: logging.Logger):
