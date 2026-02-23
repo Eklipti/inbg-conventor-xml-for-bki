@@ -32,6 +32,28 @@ def save_xml(root_element: ET.Element, filename: str, logger: logging.Logger):
     except Exception as e:
         logger.error(f"Ошибка при сохранении {filename}: {e}")
 
+def calculate_days_difference(start_date_str: str, end_date_str: str) -> str:
+    """Вычисляет количество дней между двумя датами. Ожидает формат ДД.ММ.ГГГГ или ГГГГ-ММ-ДД."""
+    if not start_date_str or not end_date_str:
+        return "0"
+        
+    try:
+        if "." in start_date_str:
+            start_dt = datetime.strptime(start_date_str, "%d.%m.%Y")
+        elif "-" in start_date_str:
+            start_dt = datetime.strptime(start_date_str, "%Y-%m-%d")
+        else:
+            logger.error(f"Неизвестные формат даты: {start_date_str}")
+            return "0"
+
+        end_dt = datetime.strptime(end_date_str, "%Y-%m-%d")
+        
+        delta = (end_dt - start_dt).days
+        return str(max(0, delta))
+    except Exception:
+        logger.error(f"Неизвестная дата.")
+        return "0"
+
 
 def build_source_block(parent_element: ET.Element, config: dict, date_str: str):
     """Универсальная функция для создания блока Source во всех форматах."""
