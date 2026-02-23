@@ -6,6 +6,9 @@ from datetime import datetime
 
 import excel_parser
 
+now = datetime.now()
+date_doc_str = now.strftime("%Y-%m-%d")
+
 def load_config(config_path: Path, logger: logging.Logger) -> dict:
     """Загрузка конфигурации из JSON файла."""
     if not config_path.exists():
