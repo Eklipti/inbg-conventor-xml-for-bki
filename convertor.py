@@ -337,7 +337,9 @@ def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger):
         "regNumberDocInaccept": reg_num
     }
     
-    finalize_and_save_xml("scoring", attr, f"DMH_FCH_{date_doc_str}_{reg_num}.xml", data_dict, config, date_doc_str, logger)
+    date_file_str = now.strftime("%Y%m%d")
+    filename = f"DMH_FCH_{date_file_str}_{reg_num}.xml"
+    finalize_and_save_xml("scoring", attr, filename, data_dict, config, date_doc_str, logger)
 
 def generate_xml_kbrs(data_dict: dict, config: dict, logger: logging.Logger):
     logger.debug("Генерация XML для КБРС.")
