@@ -9,6 +9,9 @@ import excel_parser
 now = datetime.now()
 date_doc_str = now.strftime("%Y-%m-%d")
 
+# ---
+# TODO: Перенести в utils.py
+# ---
 def load_config(config_path: Path, logger: logging.Logger) -> dict:
     """Загрузка конфигурации из JSON файла."""
     if not config_path.exists():
@@ -93,7 +96,7 @@ def format_sum(value) -> str:
         return f"{float_val:.2f}"
     except ValueError:
         return "0.00"
-
+# ------ 
 
 def build_source_block(parent_element: ET.Element, config: dict, date_str: str):
     """Универсальная функция для создания блока Source во всех форматах."""
