@@ -305,7 +305,7 @@ def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, burea
         
         events = ET.SubElement(subject_fl, "Events")
         
-        status = row.get("Статус долга (Операция)", "").strip().lower()
+        status_raw = row.get("Статус долга (Операция)", "").strip().lower()
         if status_raw.startswith("edit"):
             build_event(events, row, date_doc_str, bureau, event_counter, event_type="2_3")
             event_counter += 1
