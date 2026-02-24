@@ -140,7 +140,7 @@ def build_title_block(subject_fl: ET.Element, row: dict):
     ET.SubElement(fl_4_doc, "issueDate").text = format_date(row.get("Дата выдачи", ""))
     ET.SubElement(fl_4_doc, "docIssuer").text = clean_issuer(row.get("Кем выдан", ""))
     ET.SubElement(fl_4_doc, "deptCode").text = "000-000"
-    ET.SubElement(fl_4_doc, "foreignerCode").text = "0"
+    ET.SubElement(fl_4_doc, "foreignerCode").text = "3"
     
     # === Блок ФЛ 2 и ФЛ 5 ===
     fl_2_5_group = ET.SubElement(title, "FL_2_5_Group")
@@ -194,7 +194,7 @@ def build_event(
     ET.SubElement(fl_18, "creditLineExist_0")
     ET.SubElement(fl_18, "floatRateExist_0")
     ET.SubElement(fl_18, "partialTransferExist_0")
-    ET.SubElement(fl_18, "startDate").text = format_date(row.get("Дата передачи (обновления)", ""))
+    ET.SubElement(fl_18, "startDate").text = format_date(row.get("Дата создания (дата передачи цессии)", ""))
     ET.SubElement(fl_18, "repaymentFact_0")
     ET.SubElement(fl_18, "transferFact_0")
     ET.SubElement(fl_18, "partnerFinancingFact_0")
@@ -202,7 +202,7 @@ def build_event(
     fl_19 = ET.SubElement(event_elem, "FL_19_Amount")
     ET.SubElement(fl_19, "sum").text = row.get("Общая сумма долга", "")
     ET.SubElement(fl_19, "currency").text = "RUB"
-    ET.SubElement(fl_19, "calcDate").text = row.get("Дата создания (дата передачи цессии)", "")
+    ET.SubElement(fl_19, "calcDate").text = format_date(row.get("Дата создания (дата передачи цессии)", ""))
     
     fl_19_1 = ET.SubElement(event_elem, "FL_19_1_AmountInfo")
     ET.SubElement(fl_19_1, "securityFact_0")
@@ -228,11 +228,7 @@ def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str):
     ET.SubElement(fl_27, "debtOverduePercentSum").text = "0.00"
     ET.SubElement(fl_27, "debtOverdueOtherSum").text = "0.00"
     
-    try: od_val = float(debt_remains) if debt_remains else -1.0
-    except ValueError: od_val = -1.0
-
-    if od_val == 0.0: miss_date = "1900-02-01"
-    else: miss_date = format_date(row.get("Дата передачи (обновления)", ""))
+    miss_date = format_date(row.get("Дата создания (дата передачи цессии)", ""))
     
     ET.SubElement(fl_27, "debtOverdueStartDate").text = miss_date
     ET.SubElement(fl_27, "mainMissDate").text = miss_date
