@@ -21,6 +21,17 @@ def load_config(config_path: Path, logger: logging.Logger) -> dict:
         logger.crtitical(f"Ошибка при чтении {config_path}: {e}")
         sys.exit(1)
 
+def format_date(date_str: str) -> str:
+    """Переводит дату из ДД.ММ.ГГГГ в ГГГГ-ММ-ДД."""
+    if not date_str:
+        return ""
+    date_str = date_str.strip()
+    if "." in date_str:
+        parts = date_str.split(".")
+        if len(parts) == 3:
+            return f"{parts[2]}-{parts[1]}-{parts[0]}"
+    return date_str
+
 def save_xml(root_element: ET.Element, filename: str, logger: logging.Logger):
     """Сохраняет XML дерево в файл с нужным заголовком."""
     tree = ET.ElementTree(root_element)
@@ -125,7 +136,26 @@ def build_event_2_3(events_elem: ET.Element, row: dict, date_doc_str: str, burea
     ET.SubElement(fl_17, "openDate").text = row.get("Дата согласия на обработку ПДН (дата договора)", "")
     
     fl_18 = ET.SubElement(event_2_3, "FL_18_Deal")
-    # TODO: Сюда пойдут данные, которые зависят от БКИ
+    ET.SubElement(fl_18, "role").text = "1"
+    ET.SubElement(fl_18, "code").text = "1"
+    ET.SubElement(fl_18, "kindCode").text = "99"
+    ET.SubElement(fl_18, "purposeCode").text = "99"
+    ET.SubElement(fl_18, "consumerExist_0")
+    ET.SubElement(fl_18, "cardExist_0")
+    ET.SubElement(fl_18, "novationExist_0")
+    ET.SubElement(fl_18, "monetarySourceExist_1")
+    ET.SubElement(fl_18, "monetarySubjectExist_1")
+    ET.SubElement(fl_18, "endDate").text = "9999-12-31"
+    ET.SubElement(fl_18, "creditorCode").text = "1"
+    ET.SubElement(fl_18, "partialExist_1")
+    ET.SubElement(fl_18, "transferUid").text = row.get("Уникальный идентификатор договора (сделки) БАНКА", "")
+    ET.SubElement(fl_18, "creditLineExist_0")
+    ET.SubElement(fl_18, "floatRateExist_0")
+    ET.SubElement(fl_18, "partialTransferExist_0")
+    ET.SubElement(fl_18, "startDate").text = row.get("Дата передачи (обновления)", "")
+    ET.SubElement(fl_18, "repaymentFact_0")
+    ET.SubElement(fl_18, "transferFact_0")
+    ET.SubElement(fl_18, "partnerFinancingFact_0")
     
     fl_19 = ET.SubElement(event_2_3, "FL_19_Amount")
     ET.SubElement(fl_19, "sum").text = row.get("Общая сумма долга", "")
