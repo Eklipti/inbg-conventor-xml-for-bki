@@ -216,7 +216,7 @@ def build_event(
     elif event_type == "2_5":
         build_suffix_2_5(event_elem, row, date_doc_str, bureau, extra_param)
 
-def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str):
+def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str, event_type: str):
     """Функция для формирования блоков FL_27 и FL_28."""
     debt_remains_raw = row.get("Остаток долга", "")
     debt_remains = str(debt_remains_raw).strip()
@@ -235,7 +235,10 @@ def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str):
     ET.SubElement(fl_27, "percentMissDate").text = miss_date
     
     miss_days = calculate_days_difference(miss_date, date_doc_str)
-    ET.SubElement(fl_27, "missDuration").text = miss_days
+
+    if event_type == "2_5": ET.SubElement(fl_27, "missDuration").text = "0"
+    else: ET.SubElement(fl_27, "missDuration").text = miss_days
+
     ET.SubElement(fl_27, "repaidMissDuration").text = miss_days
     
     fl_28 = ET.SubElement(group_25_28, "FL_28_Payment")
@@ -275,7 +278,7 @@ def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, burea
     fl_26 = ET.SubElement(group_25_28, "FL_26_DebtDue")
     ET.SubElement(fl_26, "debtDueExist_0")
     
-    build_fl_27_28(group_25_28, row, date_doc_str)
+    build_fl_27_28(group_25_28, row, date_doc_str, "2_3")
 
     ET.SubElement(ET.SubElement(event_elem, "FL_20_JointDebtors"), "exist_0")
     ET.SubElement(ET.SubElement(event_elem, "FL_36_1_ProvisionPaymentOffset"), "exist_0")
@@ -302,7 +305,7 @@ def build_suffix_2_5(event_elem: ET.Element, row: dict, date_doc_str: str, burea
     ET.SubElement(group_25_28, "calcDate").text = date_doc_str
     ET.SubElement(group_25_28, "exist_0")
     
-    build_fl_27_28(group_25_28, row, date_doc_str)
+    build_fl_27_28(group_25_28, row, date_doc_str, "2_5")
     
     fl_38 = ET.SubElement(event_elem, "FL_38_ContractEnd")
     ET.SubElement(fl_38, "date").text = date_doc_str
