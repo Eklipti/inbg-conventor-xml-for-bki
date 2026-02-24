@@ -144,12 +144,8 @@ def build_title_block(subject_fl: ET.Element, row: dict):
     
     # === Блок ФЛ 2 и ФЛ 5 ===
     fl_2_5_group = ET.SubElement(title, "FL_2_5_Group")
-    
-    fl_2_prev_name = ET.SubElement(fl_2_5_group, "FL_2_PrevName")
-    ET.SubElement(fl_2_prev_name, "prevNameFlag_0")
-    
-    fl_5_prev_doc = ET.SubElement(fl_2_5_group, "FL_5_PrevDoc")
-    ET.SubElement(fl_5_prev_doc, "prevDocFact_0")
+    ET.SubElement(ET.SubElement(fl_2_5_group, "FL_2_PrevName"), "prevNameFlag_0")
+    ET.SubElement(ET.SubElement(fl_2_5_group, "FL_5_PrevDoc"), "prevDocFact_0")
     
     # === Блок ФЛ 3 (Рождение) ===
     fl_3_birth = ET.SubElement(title, "FL_3_Birth")
