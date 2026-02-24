@@ -5,6 +5,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from datetime import datetime
 
+logger = logging.getLogger(__name__)
+
 def load_config(config_path: Path, logger: logging.Logger) -> dict:
     """Загрузка конфигурации из JSON файла."""
     if not config_path.exists():
@@ -57,7 +59,7 @@ def save_xml(root_element: ET.Element, filename: str, logger: logging.Logger):
     except Exception as e:
         logger.error(f"Ошибка при сохранении {filename}: {e}")
 
-def calculate_days_difference(start_date_str: str, end_date_str: str, logger: logging.Logger) -> str:
+def calculate_days_difference(start_date_str: str, end_date_str: str) -> str:
     """Вычисляет количество дней между двумя датами. Ожидает формат ДД.ММ.ГГГГ или ГГГГ-ММ-ДД."""
     if not start_date_str or not end_date_str:
         logger.warning(f"Дата отсутствует: {start_date_str}; {end_date_str}")
