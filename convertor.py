@@ -218,7 +218,8 @@ def build_event(
 
 def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str):
     """Функция для формирования блоков FL_27 и FL_28."""
-    debt_remains = row.get("Остаток долга", "")
+    debt_remains_raw = row.get("Остаток долга", "")
+    debt_remains = str(debt_remains_raw).strip()
     
     fl_27 = ET.SubElement(group_25_28, "FL_27_DebtOverdue")
     ET.SubElement(fl_27, "missFact_1")
@@ -227,7 +228,12 @@ def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str):
     ET.SubElement(fl_27, "debtOverduePercentSum").text = "0.00"
     ET.SubElement(fl_27, "debtOverdueOtherSum").text = "0.00"
     
-    miss_date = format_date(row.get("Дата передачи (обновления)", ""))
+    try: od_val = float(debt_remains) if debt_remains else -1.0
+    except ValueError: od_val = -1.0
+
+    if od_val == 0.0: miss_date = "1900-02-01"
+    else: miss_date = format_date(row.get("Дата передачи (обновления)", ""))
+    
     ET.SubElement(fl_27, "debtOverdueStartDate").text = miss_date
     ET.SubElement(fl_27, "mainMissDate").text = miss_date
     ET.SubElement(fl_27, "percentMissDate").text = miss_date
