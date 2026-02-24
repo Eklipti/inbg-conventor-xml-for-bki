@@ -83,6 +83,17 @@ def calculate_days_difference(start_date_str: str, end_date_str: str) -> str:
         logger.error(f"Неизвестная дата.")
         return "0"
 
+def format_sum(value) -> str:
+    """Округляет сумму до 2 знаков после запятой и возвращает строку (например, '0.00', '123.45')."""
+    if value is None or str(value).strip() == "":
+        return "0.00"
+    try:
+        clean_val = str(value).strip().replace(',', '.')
+        float_val = float(clean_val)
+        return f"{float_val:.2f}"
+    except ValueError:
+        return "0.00"
+
 
 def build_source_block(parent_element: ET.Element, config: dict, date_str: str):
     """Универсальная функция для создания блока Source во всех форматах."""
@@ -200,10 +211,10 @@ def build_event(
     ET.SubElement(fl_18, "partnerFinancingFact_0")
     
     fl_19 = ET.SubElement(event_elem, "FL_19_Amount")
-    ET.SubElement(fl_19, "sum").text = row.get("Общая сумма долга", "")
+    ET.SubElement(fl_19, "sum").text = format_sum(row.get("Общая сумма долга"))
     ET.SubElement(fl_19, "currency").text = "RUB"
     ET.SubElement(fl_19, "calcDate").text = format_date(row.get("Дата создания (дата передачи цессии)", ""))
-    
+
     fl_19_1 = ET.SubElement(event_elem, "FL_19_1_AmountInfo")
     ET.SubElement(fl_19_1, "securityFact_0")
     
@@ -218,9 +229,9 @@ def build_event(
 
 def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str, event_type: str):
     """Функция для формирования блоков FL_27 и FL_28."""
-    debt_remains_raw = row.get("Остаток долга", "")
-    debt_remains = str(debt_remains_raw).strip()
     
+    debt_remains = format_sum(row.get("Остаток долга"))
+
     fl_27 = ET.SubElement(group_25_28, "FL_27_DebtOverdue")
     ET.SubElement(fl_27, "missFact_1")
     ET.SubElement(fl_27, "debtOverdueSum").text = debt_remains
@@ -242,7 +253,8 @@ def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str, event_
     ET.SubElement(fl_27, "repaidMissDuration").text = miss_days
     
     fl_28 = ET.SubElement(group_25_28, "FL_28_Payment")
-    last_pay = row.get("Сумма последнего возрата", "")
+    last_pay = format_sum(row.get("Сумма последнего возрата", ""))
+
     ET.SubElement(fl_28, "paymentSum").text = last_pay
     ET.SubElement(fl_28, "paymentMainSum").text = last_pay
     ET.SubElement(fl_28, "paymentPercentSum").text = "0.00"
@@ -265,7 +277,7 @@ def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, burea
     ET.SubElement(group_25_28, "calcDate").text = date_doc_str
     ET.SubElement(group_25_28, "exist_1")
     
-    debt_remains = row.get("Остаток долга", "")
+    debt_remains = format_sum(row.get("Остаток долга"))
     
     fl_25 = ET.SubElement(group_25_28, "FL_25_Debt")
     ET.SubElement(fl_25, "debtSum").text = debt_remains
