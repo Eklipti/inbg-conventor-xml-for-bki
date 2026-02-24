@@ -146,11 +146,11 @@ def build_event(
 
     event_elem = ET.SubElement(events_elem, event_tag, event_attrs)
     
-    fl_17 = ET.SubElement(event_2_3, "FL_17_DealUid")
+    fl_17 = ET.SubElement(event_elem, "FL_17_DealUid")
     ET.SubElement(fl_17, "uid").text = row.get("Уникальный идентификатор договора (сделки) БАНКА", "")
     ET.SubElement(fl_17, "openDate").text = format_date(row.get("Дата согласия на обработку ПДН (дата договора)", ""))
     
-    fl_18 = ET.SubElement(event_2_3, "FL_18_Deal")
+    fl_18 = ET.SubElement(event_elem, "FL_18_Deal")
     ET.SubElement(fl_18, "role").text = "1"
     ET.SubElement(fl_18, "code").text = "1"
     ET.SubElement(fl_18, "kindCode").text = "99"
@@ -172,15 +172,15 @@ def build_event(
     ET.SubElement(fl_18, "transferFact_0")
     ET.SubElement(fl_18, "partnerFinancingFact_0")
     
-    fl_19 = ET.SubElement(event_2_3, "FL_19_Amount")
+    fl_19 = ET.SubElement(event_elem, "FL_19_Amount")
     ET.SubElement(fl_19, "sum").text = row.get("Общая сумма долга", "")
     ET.SubElement(fl_19, "currency").text = "RUB"
     ET.SubElement(fl_19, "calcDate").text = row.get("Дата создания (дата передачи цессии)", "")
     
-    fl_19_1 = ET.SubElement(event_2_3, "FL_19_1_AmountInfo")
+    fl_19_1 = ET.SubElement(event_elem, "FL_19_1_AmountInfo")
     ET.SubElement(fl_19_1, "securityFact_0")
     
-    fl_21 = ET.SubElement(event_2_3, "FL_21_PaymentTerms")
+    fl_21 = ET.SubElement(event_elem, "FL_21_PaymentTerms")
     ET.SubElement(fl_21, "mainPaySum").text = "0.00"
     ET.SubElement(fl_21, "percentPaySum").text = "0.00"
     
@@ -228,7 +228,7 @@ def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str):
 def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str):
     """Концовка для события 2.3"""
 
-    group_25_28 = ET.SubElement(event_2_3, "FL_25_26_27_28_Group")
+    group_25_28 = ET.SubElement(event_elem, "FL_25_26_27_28_Group")
     ET.SubElement(group_25_28, "lastPayExist_0")
     ET.SubElement(group_25_28, "calcDate").text = date_doc_str
     ET.SubElement(group_25_28, "exist_1")
@@ -248,17 +248,17 @@ def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, burea
     
     build_fl_27_28(group_25_28, row, date_doc_str)
 
-    ET.SubElement(ET.SubElement(event_2_3, "FL_20_JointDebtors"), "exist_0")
-    ET.SubElement(ET.SubElement(event_2_3, "FL_36_1_ProvisionPaymentOffset"), "exist_0")
+    ET.SubElement(ET.SubElement(event_elem, "FL_20_JointDebtors"), "exist_0")
+    ET.SubElement(ET.SubElement(event_elem, "FL_36_1_ProvisionPaymentOffset"), "exist_0")
     
-    fl_54 = ET.SubElement(event_2_3, "FL_54_Accounting")
+    fl_54 = ET.SubElement(event_elem, "FL_54_Accounting")
     ET.SubElement(fl_54, "exist_1")
     ET.SubElement(fl_54, "minInterest").text = "0.00"
     ET.SubElement(fl_54, "maxInterest").text = "0.00"
     ET.SubElement(fl_54, "supportExist_0")
     ET.SubElement(fl_54, "calcDate").text = date_doc_str
     
-    fl_56 = ET.SubElement(event_2_3, "FL_56_Participation")
+    fl_56 = ET.SubElement(event_elem, "FL_56_Participation")
     ET.SubElement(fl_56, "role").text = "1"
     ET.SubElement(fl_56, "kindCode").text = "99"
     ET.SubElement(fl_56, "uid").text = row.get("Уникальный идентификатор договора (сделки) БАНКА", "")
