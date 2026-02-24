@@ -32,6 +32,24 @@ def format_date(date_str: str) -> str:
             return f"{parts[2]}-{parts[1]}-{parts[0]}"
     return date_str
 
+def clean_fio(text: str) -> str:
+    """Очищает ФИО: заменяет '_' и неразрывные пробелы на обычные, убирает пробелы по краям."""
+    if not text:
+        return ""
+    # \xa0 - неразрывный пробел (NBSP)
+    return str(text).replace("_", " ").replace("\xa0", " ").strip()
+
+def clean_issuer(text: str) -> str:
+    """Очищает поле 'Кем выдан' от запрещенных символов и обрезает до 200 символов."""
+    if not text:
+        return ""
+    text = str(text)
+    for char in ["*", "<", ">", "«", "»"]:
+        text = text.replace(char, " ")
+    # Заменяем случайно образовавшиеся двойные пробелы на одинарные и обрезаем
+    text = " ".join(text.split())
+    return text[:200]
+
 def save_xml(root_element: ET.Element, filename: str, logger: logging.Logger):
     """Сохраняет XML дерево в файл с нужным заголовком."""
     tree = ET.ElementTree(root_element)
@@ -96,22 +114,35 @@ def build_title_block(subject_fl: ET.Element, row: dict):
     fl_1_4_group = ET.SubElement(title, "FL_1_4_Group")
     
     fl_1_name = ET.SubElement(fl_1_4_group, "FL_1_Name")
-    ET.SubElement(fl_1_name, "lastName").text = row.get("Фамилия", "")
-    ET.SubElement(fl_1_name, "firstName").text = row.get("Имя", "")
-    # Если отчества нет, .text будет пустой строкой - пустой тег
-    ET.SubElement(fl_1_name, "middleName").text = row.get("Отчество", "")
+    ET.SubElement(fl_1_name, "lastName").text = clean_fio(row.get("Фамилия", ""))
+    ET.SubElement(fl_1_name, "firstName").text = clean_fio(row.get("Имя", ""))
+    ET.SubElement(fl_1_name, "middleName").text = clean_fio(row.get("Отчество", ""))
     
+    country_code = str(row.get("Код страны", "")).strip()
+    doc_series = str(row.get("Серия", "")).strip()
+    doc_num = str(row.get("Номер", "")).strip()
+    doc_code = "21"
+    
+    if not country_code:
+        doc_code = "9"
+        doc_series = "00"
+        doc_num = "000000"
+    elif doc_series in ("", "0000") and doc_num in ("", "000000"):
+        doc_code = "14"
+        doc_series = "Н-Е-Т"
+        doc_num = "Д-А-Н-Н-Ы-Х"
+
     fl_4_doc = ET.SubElement(fl_1_4_group, "FL_4_Doc")
     ET.SubElement(fl_4_doc, "countryCode").text = "643"  # Россия
-    ET.SubElement(fl_4_doc, "docCode").text = "21"       # Паспорт РФ
-    ET.SubElement(fl_4_doc, "docSeries").text = row.get("Серия", "")
-    ET.SubElement(fl_4_doc, "docNum").text = row.get("Номер", "")
+    ET.SubElement(fl_4_doc, "docCode").text = doc_code
+    ET.SubElement(fl_4_doc, "docSeries").text = doc_series
+    ET.SubElement(fl_4_doc, "docNum").text = doc_num
     ET.SubElement(fl_4_doc, "issueDate").text = format_date(row.get("Дата выдачи", ""))
-    ET.SubElement(fl_4_doc, "docIssuer").text = row.get("Кем выдан", "")
-    ET.SubElement(fl_4_doc, "deptCode").text = "000-000" # hardcore
+    ET.SubElement(fl_4_doc, "docIssuer").text = clean_issuer(row.get("Кем выдан", ""))
+    ET.SubElement(fl_4_doc, "deptCode").text = "000-000"
     ET.SubElement(fl_4_doc, "foreignerCode").text = "0"
     
-    # === Блок ФЛ 2 и ФЛ 5 (Предыдущие данные в реестре отсутствуют) ===
+    # === Блок ФЛ 2 и ФЛ 5 ===
     fl_2_5_group = ET.SubElement(title, "FL_2_5_Group")
     
     fl_2_prev_name = ET.SubElement(fl_2_5_group, "FL_2_PrevName")
