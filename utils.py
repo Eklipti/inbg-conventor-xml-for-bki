@@ -95,3 +95,12 @@ def format_sum(value) -> str:
         return f"{float_val:.2f}"
     except ValueError:
         return "0.00"
+
+def save_config(config_data: dict, config_path: Path, logger: logging.Logger):
+    """Сохраняет обновленную конфигурацию обратно в JSON файл."""
+    try:
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config_data, f, ensure_ascii=False, indent=4)
+        logger.debug("Конфигурационный файл успешно обновлен (счетчик увеличен).")
+    except Exception as e:
+        logger.error(f"Ошибка при перезаписи {config_path}: {e}")

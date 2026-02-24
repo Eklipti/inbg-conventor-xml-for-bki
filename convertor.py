@@ -1,4 +1,5 @@
 import logging
+import random
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from datetime import datetime
@@ -7,6 +8,7 @@ import excel_parser
 
 from utils import (
     load_config, 
+    save_config,
     format_date, 
     clean_fio, 
     clean_issuer, 
@@ -312,13 +314,12 @@ def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger, now:
     
     finalize_and_save_xml("okb", attr, f"{reg_num}.xml", data_dict, config, date_doc_str, logger)
 
-def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger, now: datetime, date_doc_str: str):
+def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger, now: datetime, date_doc_str: str, run_counter: int):
     logger.debug("Генерация XML для Скоринга.")
     org = config.get("organization", {})
     subjects_count = str(len(data_dict) - 1)
     
-    scoring_conf = config.get("bureaus", {}).get("scoring", {})
-    reg_num = scoring_conf.get("reg_num", "2637")
+    reg_num = str(run_counter)
 
     attr = {
         "schemaVersion": "4.1",
@@ -336,11 +337,12 @@ def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger, 
     filename = f"DMH_FCH_{date_file_str}_{reg_num}.xml"
     finalize_and_save_xml("scoring", attr, filename, data_dict, config, date_doc_str, logger)
 
-def generate_xml_kbrs(data_dict: dict, config: dict, logger: logging.Logger, now: datetime, date_doc_str: str):
+def generate_xml_kbrs(data_dict: dict, config: dict, logger: logging.Logger, now: datetime, date_doc_str: str, run_counter: int):
     logger.debug("Генерация XML для КБРС.")
     org = config.get("organization", {})
     subjects_count = str(len(data_dict) - 1)
-    reg_num = f"KBRS_1136_{now.strftime('%Y%m%d')}_2637"
+
+    reg_num = f"KBRS_1136_{now.strftime('%Y%m%d')}_{run_counter}"
     
     attr = {
         "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
@@ -378,14 +380,20 @@ def generate_xml_nbki(data_dict: dict, config: dict, logger: logging.Logger, now
     
     finalize_and_save_xml("nbki", attr, f"{reg_num}.xml", data_dict, config, date_doc_str, logger)
 
-def run_conversion(file_path: Path, config_path: Path, logger: logging.Logger):
+def run_conversion(file_path: Path, config_path: Path, logger: logging.Logger, is_debug: bool = False):
     logger.info("Запуск основного процесса конвертации...")
     
     now = datetime.now()
     date_doc_str = now.strftime("%Y-%m-%d")
-    logger.debug(f"Взятое время: {date_doc_str}")
-
+    
     config_data = load_config(config_path, logger)
+    
+    if is_debug:
+        logger.debug("Используется тестовый счетчик: 1111")
+        run_counter = 1111
+    else:
+        run_counter = config_data.get("run_counter", 2640)
+    
     data_dict = excel_parser.parse_active_sheet(file_path, logger)
     
     if len(data_dict) <= 1:
@@ -393,8 +401,14 @@ def run_conversion(file_path: Path, config_path: Path, logger: logging.Logger):
         return
 
     generate_xml_okb(data_dict, config_data, logger, now, date_doc_str)
-    generate_xml_scoring(data_dict, config_data, logger, now, date_doc_str)
-    generate_xml_kbrs(data_dict, config_data, logger, now, date_doc_str)
+    generate_xml_scoring(data_dict, config_data, logger, now, date_doc_str, run_counter)
+    generate_xml_kbrs(data_dict, config_data, logger, now, date_doc_str, run_counter)
     generate_xml_nbki(data_dict, config_data, logger, now, date_doc_str)
-
+    
+    if not is_debug:
+        config_data["run_counter"] = run_counter + 1
+        save_config(config_data, config_path, logger)
+    else:
+        logger.debug("Режим отладки: перезапись config.json пропущена, боевой счетчик не изменен.")
+    
     logger.info("Конвертация завершена!")
