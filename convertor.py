@@ -15,9 +15,6 @@ from utils import (
     save_xml
 )
 
-now = datetime.now()
-date_doc_str = now.strftime("%Y-%m-%d")
-
 def build_source_block(parent_element: ET.Element, config: dict, date_str: str):
     """Универсальная функция для создания блока Source во всех форматах."""
     org = config.get("organization", {})
@@ -290,12 +287,11 @@ def finalize_and_save_xml(bureau: str, attr: dict, filename: str, data_dict: dic
     save_xml(root, filename, logger)
 
 
-def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger):
+def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger, now: datetime, date_doc_str: str):
     logger.debug("Генерация XML для ОКБ.")
     org = config.get("organization", {})
     okb_conf = config.get("bureaus", {}).get("okb", {})
     
-    now = datetime.now()
     source_id = okb_conf.get("sourceID", "02173")
     reg_num = f"CHP_{source_id}_EFK_04-10_{now.strftime('%Y%m%d%H%M%S')}000"
     subjects_count = str(len(data_dict) - 1)
@@ -308,7 +304,7 @@ def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger):
         "ogrn": org.get("ogrn", ""),
         "sourceID": source_id,
         "regNumberDoc": reg_num,
-        "dateDoc": now.strftime("%Y-%m-%d"),
+        "dateDoc": date_doc_str,
         "subjectsCount": subjects_count,
         "groupBlocksCount": subjects_count,
         "regNumberDocInaccept": reg_num
@@ -316,10 +312,9 @@ def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger):
     
     finalize_and_save_xml("okb", attr, f"{reg_num}.xml", data_dict, config, date_doc_str, logger)
 
-def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger):
+def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger, now: datetime, date_doc_str: str):
     logger.debug("Генерация XML для Скоринга.")
     org = config.get("organization", {})
-    now = datetime.now()
     subjects_count = str(len(data_dict) - 1)
     
     scoring_conf = config.get("bureaus", {}).get("scoring", {})
@@ -331,7 +326,7 @@ def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger):
         "ogrn": org.get("ogrn", ""),
         "sourceID": "DMH",
         "regNumberDoc": reg_num,
-        "dateDoc": now.strftime("%Y-%m-%d"),
+        "dateDoc": date_doc_str,
         "subjectsCount": subjects_count,
         "groupBlocksCount": subjects_count,
         "regNumberDocInaccept": reg_num
@@ -341,10 +336,9 @@ def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger):
     filename = f"DMH_FCH_{date_file_str}_{reg_num}.xml"
     finalize_and_save_xml("scoring", attr, filename, data_dict, config, date_doc_str, logger)
 
-def generate_xml_kbrs(data_dict: dict, config: dict, logger: logging.Logger):
+def generate_xml_kbrs(data_dict: dict, config: dict, logger: logging.Logger, now: datetime, date_doc_str: str):
     logger.debug("Генерация XML для КБРС.")
     org = config.get("organization", {})
-    now = datetime.now()
     subjects_count = str(len(data_dict) - 1)
     reg_num = f"KBRS_1136_{now.strftime('%Y%m%d')}_2637"
     
@@ -356,7 +350,7 @@ def generate_xml_kbrs(data_dict: dict, config: dict, logger: logging.Logger):
         "ogrn": org.get("ogrn", ""),
         "sourceID": "1136",
         "regNumberDoc": reg_num,
-        "dateDoc": now.strftime("%Y-%m-%d"),
+        "dateDoc": date_doc_str,
         "subjectsCount": subjects_count,
         "groupBlocksCount": subjects_count,
         "regNumberDocInaccept": reg_num
@@ -364,16 +358,15 @@ def generate_xml_kbrs(data_dict: dict, config: dict, logger: logging.Logger):
     
     finalize_and_save_xml("kbrs", attr, f"{reg_num}.xml", data_dict, config, date_doc_str, logger)
 
-def generate_xml_nbki(data_dict: dict, config: dict, logger: logging.Logger):
+def generate_xml_nbki(data_dict: dict, config: dict, logger: logging.Logger, now: datetime, date_doc_str: str):
     logger.debug("Генерация XML для НБКИ.")
     org = config.get("organization", {})
-    now = datetime.now()
     subjects_count = str(len(data_dict) - 1)
     reg_num = f"SJ01SS000001_{now.strftime('%Y%m%d')}_{now.strftime('%H%M%S')}"
     
     attr = {
         "schemaVersion": "4.1",
-        "dateDoc": now.strftime("%Y-%m-%d"),
+        "dateDoc": date_doc_str,
         "inn": org.get("inn", ""),
         "ogrn": org.get("ogrn", ""),
         "sourceID": "SJ01SS000001",
@@ -388,6 +381,10 @@ def generate_xml_nbki(data_dict: dict, config: dict, logger: logging.Logger):
 def run_conversion(file_path: Path, config_path: Path, logger: logging.Logger):
     logger.info("Запуск основного процесса конвертации...")
     
+    now = datetime.now()
+    date_doc_str = now.strftime("%Y-%m-%d")
+    logger.debug(f"Взятое время: {date_doc_str}")
+
     config_data = load_config(config_path, logger)
     data_dict = excel_parser.parse_active_sheet(file_path, logger)
     
@@ -395,9 +392,9 @@ def run_conversion(file_path: Path, config_path: Path, logger: logging.Logger):
         logger.warning("Нет данных для конвертации (файл пуст или содержит только заголовки).")
         return
 
-    generate_xml_okb(data_dict, config_data, logger)
-    generate_xml_scoring(data_dict, config_data, logger)
-    generate_xml_kbrs(data_dict, config_data, logger)
-    generate_xml_nbki(data_dict, config_data, logger)
-    
+    generate_xml_okb(data_dict, config_data, logger, now, date_doc_str)
+    generate_xml_scoring(data_dict, config_data, logger, now, date_doc_str)
+    generate_xml_kbrs(data_dict, config_data, logger, now, date_doc_str)
+    generate_xml_nbki(data_dict, config_data, logger, now, date_doc_str)
+
     logger.info("Конвертация завершена!")

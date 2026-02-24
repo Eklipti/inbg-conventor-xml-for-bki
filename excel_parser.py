@@ -1,6 +1,7 @@
 import openpyxl
 import logging
 import warnings
+from datetime import datetime
 from pathlib import Path
 
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
@@ -47,7 +48,7 @@ def parse_active_sheet(file_path: Path, logger: logging.Logger) -> dict:
         
         val = row[col_idx]
         # Если openpyxl распознал дату
-        if isinstance(val, datetime.datetime):
+        if isinstance(val, datetime):
             return val.strftime("%d.%m.%Y")
             
         return str(val).strip()
