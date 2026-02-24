@@ -126,9 +126,15 @@ def build_title_block(subject_fl: ET.Element, row: dict):
     ET.SubElement(fl_3_birth, "countryCode").text = "643"
     ET.SubElement(fl_3_birth, "birthPlace").text = row.get("Место рождения", "")
 
-def build_event_2_3(events_elem: ET.Element, row: dict, date_doc_str: str, bureau: str):
+def build_event_2_3(events_elem: ET.Element, row: dict, date_doc_str: str, bureau: str, order_num: int):
     """Формирование блока Событие 2.3 (Изменение)."""
     
+    event_attrs = {
+        "orderNum": str(order_num),
+        "eventDate": date_doc_str,
+        "operationCode": "B"
+    }
+
     event_2_3 = ET.SubElement(events_elem, "FL_Event_2_3")
     
     fl_17 = ET.SubElement(event_2_3, "FL_17_DealUid")
@@ -238,6 +244,30 @@ def build_event_2_3(events_elem: ET.Element, row: dict, date_doc_str: str, burea
     ET.SubElement(fl_56, "stopExist_0")
 
 
+def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, bureau: str):
+    """Универсальная функция для формирования блока Data со всеми субъектами и событиями."""
+    data_elem = ET.SubElement(root, "Data")
+    
+    event_counter = 1 
+    
+    for key, row in data_dict.items():
+        if key == 0:
+            continue
+            
+        subject_fl = ET.SubElement(data_elem, "Subject_FL")
+        build_title_block(subject_fl, row)
+        
+        events = ET.SubElement(subject_fl, "Events")
+        
+        status = row.get("Статус долга (Операция)", "").strip().lower()
+        if status == "edit":
+            build_event_2_3(events, row, date_doc_str, bureau, event_counter)
+            event_counter += 1
+        elif status == "close":
+            # TODO: Здесь вызовем build_event_2_5
+            # event_counter += 1
+            pass
+
 def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger):
     logger.debug("Генерация XML для ОКБ.")
     org = config.get("organization", {})
@@ -264,26 +294,8 @@ def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger):
     
     root = ET.Element("Document", attr)
     
-    # === БЛОК SOURCE (Источник) ===
     build_source_block(root, config, date_doc_str)
-
-    # === БЛОК DATA (Данные) ===
-    data_elem = ET.SubElement(root, "Data")
-    
-    for key, row in data_dict.items():
-        if key == 0:
-            continue
-            
-        subject_fl = ET.SubElement(data_elem, "Subject_FL")
-        build_title_block(subject_fl, row)
-        
-        events = ET.SubElement(subject_fl, "Events")
-        
-        status = row.get("Статус долга (Операция)", "").strip().lower()
-        if status == "edit":
-            build_event_2_3(events, row, date_doc_str, bureau="okb")
-        elif status == "close":
-            pass # TODO: Здесь будет вызов build_event_2_5
+    build_data_block(root, data_dict, date_doc_str, bureau="okb")
 
     save_xml(root, f"{reg_num}.xml", logger)
 
@@ -310,26 +322,8 @@ def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger):
     
     root = ET.Element("Document", attr)
 
-    # === БЛОК SOURCE (Источник) ===
     build_source_block(root, config, date_doc_str)
-
-    # === БЛОК DATA (Данные) ===
-    data_elem = ET.SubElement(root, "Data")
-    
-    for key, row in data_dict.items():
-        if key == 0:
-            continue
-            
-        subject_fl = ET.SubElement(data_elem, "Subject_FL")
-        build_title_block(subject_fl, row)
-        
-        events = ET.SubElement(subject_fl, "Events")
-        
-        status = row.get("Статус долга (Операция)", "").strip().lower()
-        if status == "edit":
-            build_event_2_3(events, row, date_doc_str, bureau="okb")
-        elif status == "close":
-            pass # TODO: Здесь будет вызов build_event_2_5
+    build_data_block(root, data_dict, date_doc_str, bureau="scoring")
 
     save_xml(root, f"DMH_FCH_{date_doc_str}_{reg_num}.xml", logger)
 
@@ -356,26 +350,8 @@ def generate_xml_kbrs(data_dict: dict, config: dict, logger: logging.Logger):
     
     root = ET.Element("Document", attr)
 
-    # === БЛОК SOURCE (Источник) ===
     build_source_block(root, config, date_doc_str)
-
-    # === БЛОК DATA (Данные) ===
-    data_elem = ET.SubElement(root, "Data")
-    
-    for key, row in data_dict.items():
-        if key == 0:
-            continue
-            
-        subject_fl = ET.SubElement(data_elem, "Subject_FL")
-        build_title_block(subject_fl, row)
-        
-        events = ET.SubElement(subject_fl, "Events")
-        
-        status = row.get("Статус долга (Операция)", "").strip().lower()
-        if status == "edit":
-            build_event_2_3(events, row, date_doc_str, bureau="okb")
-        elif status == "close":
-            pass # TODO: Здесь будет вызов build_event_2_5
+    build_data_block(root, data_dict, date_doc_str, bureau="kbrs")
 
     save_xml(root, f"{reg_num}.xml", logger)
 
@@ -400,27 +376,9 @@ def generate_xml_nbki(data_dict: dict, config: dict, logger: logging.Logger):
     
     root = ET.Element("Document", attr)
 
-    # === БЛОК SOURCE (Источник) ===
     build_source_block(root, config, date_doc_str)
+    build_data_block(root, data_dict, date_doc_str, bureau="nbki")
 
-    # === БЛОК DATA (Данные) ===
-    data_elem = ET.SubElement(root, "Data")
-    
-    for key, row in data_dict.items():
-        if key == 0:
-            continue
-            
-        subject_fl = ET.SubElement(data_elem, "Subject_FL")
-        build_title_block(subject_fl, row)
-        
-        events = ET.SubElement(subject_fl, "Events")
-        
-        status = row.get("Статус долга (Операция)", "").strip().lower()
-        if status == "edit":
-            build_event_2_3(events, row, date_doc_str, bureau="okb")
-        elif status == "close":
-            pass # TODO: Здесь будет вызов build_event_2_5
-                    
     save_xml(root, f"{reg_num}.xml", logger)
 
 def run_conversion(file_path: Path, config_path: Path, logger: logging.Logger):
