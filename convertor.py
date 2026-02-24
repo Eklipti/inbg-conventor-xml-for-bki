@@ -126,16 +126,25 @@ def build_title_block(subject_fl: ET.Element, row: dict):
     ET.SubElement(fl_3_birth, "countryCode").text = "643"
     ET.SubElement(fl_3_birth, "birthPlace").text = row.get("Место рождения", "")
 
-def build_event_2_3(events_elem: ET.Element, row: dict, date_doc_str: str, bureau: str, order_num: int):
-    """Формирование блока Событие 2.3 (Изменение)."""
-    
+def build_event(
+    events_elem: ET.Element, 
+    row: dict, 
+    date_doc_str: str, 
+    bureau: str, 
+    order_num: int, 
+    event_type: str, 
+    extra_param: str = None
+    ) -> None:
+    """Универсальная сборка события (2.3 или 2.5)."""
+
+    event_tag = f"FL_Event_{event_type}"
     event_attrs = {
         "orderNum": str(order_num),
         "eventDate": date_doc_str,
         "operationCode": "B"
     }
 
-    event_2_3 = ET.SubElement(events_elem, "FL_Event_2_3")
+    event_elem = ET.SubElement(events_elem, event_tag, event_attrs)
     
     fl_17 = ET.SubElement(event_2_3, "FL_17_DealUid")
     ET.SubElement(fl_17, "uid").text = row.get("Уникальный идентификатор договора (сделки) БАНКА", "")
@@ -175,6 +184,14 @@ def build_event_2_3(events_elem: ET.Element, row: dict, date_doc_str: str, burea
     ET.SubElement(fl_21, "mainPaySum").text = "0.00"
     ET.SubElement(fl_21, "percentPaySum").text = "0.00"
     
+    if event_type == "2_3":
+        build_suffix_2_3(event_elem, row, date_doc_str, bureau)
+    elif event_type == "2_5":
+        build_suffix_2_5(event_elem, row, date_doc_str, bureau, extra_param)
+
+def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str):
+    """Концовка для события 2.3"""
+
     group_25_28 = ET.SubElement(event_2_3, "FL_25_26_27_28_Group")
     ET.SubElement(group_25_28, "lastPayExist_0")
     ET.SubElement(group_25_28, "calcDate").text = date_doc_str
@@ -243,6 +260,10 @@ def build_event_2_3(events_elem: ET.Element, row: dict, date_doc_str: str, burea
     ET.SubElement(fl_56, "overdueExist_1")
     ET.SubElement(fl_56, "stopExist_0")
 
+def build_suffix_2_5(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str):
+    """Концовка для события 2.6"""
+    # TODO: сделать 2.5 ивент структуру
+    pass 
 
 def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, bureau: str):
     """Универсальная функция для формирования блока Data со всеми субъектами и событиями."""
@@ -260,13 +281,14 @@ def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, burea
         events = ET.SubElement(subject_fl, "Events")
         
         status = row.get("Статус долга (Операция)", "").strip().lower()
-        if status == "edit":
-            build_event_2_3(events, row, date_doc_str, bureau, event_counter)
+        if status_raw.startswith("edit"):
+            build_event(events, row, date_doc_str, bureau, event_counter, event_type="2_3")
             event_counter += 1
-        elif status == "close":
-            # TODO: Здесь вызовем build_event_2_5
-            # event_counter += 1
-            pass
+        elif status_raw.startswith("close"):
+            parts = status_raw.split()
+            close_digit = parts[1] if len(parts) > 1 else None
+            build_event(events, row, date_doc_str, bureau, event_counter, event_type="2_5", extra_param=close_digit)
+            event_counter += 1
 
 def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger):
     logger.debug("Генерация XML для ОКБ.")
