@@ -363,6 +363,14 @@ def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, burea
             build_event(events, row, date_doc_str, bureau, event_counter, event_type="2_5", extra_param=close_digit)
             event_counter += 1
 
+def finalize_and_save_xml(bureau: str, attr: dict, filename: str, data_dict: dict, config: dict, date_doc_str: str, logger: logging.Logger):
+    """Универсальная сборка корневого тега, шапки, данных и сохранение файла."""
+    root = ET.Element("Document", attr)
+    build_source_block(root, config, date_doc_str)
+    build_data_block(root, data_dict, date_doc_str, bureau=bureau)
+    save_xml(root, filename, logger)
+
+
 def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger):
     logger.debug("Генерация XML для ОКБ.")
     org = config.get("organization", {})
@@ -387,12 +395,7 @@ def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger):
         "regNumberDocInaccept": reg_num
     }
     
-    root = ET.Element("Document", attr)
-    
-    build_source_block(root, config, date_doc_str)
-    build_data_block(root, data_dict, date_doc_str, bureau="okb")
-
-    save_xml(root, f"{reg_num}.xml", logger)
+    finalize_and_save_xml("okb", attr, f"{reg_num}.xml", data_dict, config, date_doc_str, logger)
 
 def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger):
     logger.debug("Генерация XML для Скоринга.")
@@ -415,12 +418,7 @@ def generate_xml_scoring(data_dict: dict, config: dict, logger: logging.Logger):
         "regNumberDocInaccept": reg_num
     }
     
-    root = ET.Element("Document", attr)
-
-    build_source_block(root, config, date_doc_str)
-    build_data_block(root, data_dict, date_doc_str, bureau="scoring")
-
-    save_xml(root, f"DMH_FCH_{date_doc_str}_{reg_num}.xml", logger)
+    finalize_and_save_xml("scoring", attr, f"DMH_FCH_{date_doc_str}_{reg_num}.xml", data_dict, config, date_doc_str, logger)
 
 def generate_xml_kbrs(data_dict: dict, config: dict, logger: logging.Logger):
     logger.debug("Генерация XML для КБРС.")
@@ -443,12 +441,7 @@ def generate_xml_kbrs(data_dict: dict, config: dict, logger: logging.Logger):
         "regNumberDocInaccept": reg_num
     }
     
-    root = ET.Element("Document", attr)
-
-    build_source_block(root, config, date_doc_str)
-    build_data_block(root, data_dict, date_doc_str, bureau="kbrs")
-
-    save_xml(root, f"{reg_num}.xml", logger)
+    finalize_and_save_xml("kbrs", attr, f"{reg_num}.xml", data_dict, config, date_doc_str, logger)
 
 def generate_xml_nbki(data_dict: dict, config: dict, logger: logging.Logger):
     logger.debug("Генерация XML для НБКИ.")
@@ -469,12 +462,7 @@ def generate_xml_nbki(data_dict: dict, config: dict, logger: logging.Logger):
         "regNumberDocInaccept": reg_num
     }
     
-    root = ET.Element("Document", attr)
-
-    build_source_block(root, config, date_doc_str)
-    build_data_block(root, data_dict, date_doc_str, bureau="nbki")
-
-    save_xml(root, f"{reg_num}.xml", logger)
+    finalize_and_save_xml("nbki", attr, f"{reg_num}.xml", data_dict, config, date_doc_str, logger)
 
 def run_conversion(file_path: Path, config_path: Path, logger: logging.Logger):
     logger.info("Запуск основного процесса конвертации...")
