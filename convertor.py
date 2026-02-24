@@ -168,7 +168,7 @@ def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str, event_
     ET.SubElement(fl_27, "mainMissDate").text = miss_date
     ET.SubElement(fl_27, "percentMissDate").text = miss_date
     
-    miss_days = calculate_days_difference(miss_date, date_doc_str)
+    miss_days = calculate_days_difference(miss_date, date_doc_str, logger)
 
     if event_type == "2_5": ET.SubElement(fl_27, "missDuration").text = "0"
     else: ET.SubElement(fl_27, "missDuration").text = miss_days

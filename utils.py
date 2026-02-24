@@ -57,27 +57,31 @@ def save_xml(root_element: ET.Element, filename: str, logger: logging.Logger):
     except Exception as e:
         logger.error(f"Ошибка при сохранении {filename}: {e}")
 
-def calculate_days_difference(start_date_str: str, end_date_str: str) -> str:
+def calculate_days_difference(start_date_str: str, end_date_str: str, logger: logging.Logger) -> str:
     """Вычисляет количество дней между двумя датами. Ожидает формат ДД.ММ.ГГГГ или ГГГГ-ММ-ДД."""
     if not start_date_str or not end_date_str:
-        return "0"
+        logger.warning(f"Дата отсутствует: {start_date_str}; {end_date_str}")
+        return ""
+    
+    start_date_str = start_date_str.strip()
+    end_date_str = end_date_str.strip()
         
+    # Возвращаем пустую строку, чтобы сломать валидацию
     try:
         if "." in start_date_str:
             start_dt = datetime.strptime(start_date_str, "%d.%m.%Y")
         elif "-" in start_date_str:
             start_dt = datetime.strptime(start_date_str, "%Y-%m-%d")
         else:
-            logger.error(f"Неизвестные формат даты: {start_date_str}")
-            return "0"
-
+            logger.critical(f"Неизвестный формат даты просрочки: '{start_date_str}'")
+            return ""
         end_dt = datetime.strptime(end_date_str, "%Y-%m-%d")
-        
         delta = (end_dt - start_dt).days
         return str(max(0, delta))
-    except Exception:
-        logger.error(f"Неизвестная дата.")
-        return "0"
+        
+    except ValueError as e:
+        logger.critical(f"Невозможно вычислить дни просрочки. Кривая дата: '{start_date_str}'. Ошибка: {e}")
+        return ""
 
 def format_sum(value) -> str:
     """Округляет сумму до 2 знаков после запятой и возвращает строку (например, '0.00', '123.45')."""
