@@ -1,5 +1,6 @@
 import logging
 import json
+import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from datetime import datetime
@@ -15,13 +16,13 @@ date_doc_str = now.strftime("%Y-%m-%d")
 def load_config(config_path: Path, logger: logging.Logger) -> dict:
     """Загрузка конфигурации из JSON файла."""
     if not config_path.exists():
-        logger.crtitical(f"Конфигурационный файл не найден: {config_path}")
+        logger.critical(f"Конфигурационный файл не найден: {config_path}")
         sys.exit(1)
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except Exception as e:
-        logger.crtitical(f"Ошибка при чтении {config_path}: {e}")
+        logger.critical(f"Ошибка при чтении {config_path}: {e}")
         sys.exit(1)
 
 def format_date(date_str: str) -> str:
