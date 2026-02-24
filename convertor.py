@@ -266,10 +266,29 @@ def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, burea
     ET.SubElement(fl_56, "overdueExist_1")
     ET.SubElement(fl_56, "stopExist_0")
 
-def build_suffix_2_5(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str):
-    """Концовка для события 2.6"""
-    # TODO: сделать 2.5 ивент структуру
-    pass 
+def build_suffix_2_5(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str, extra_param: str):
+    """Специфичная концовка для события 2.5"""
+    group_25_28 = ET.SubElement(event_elem, "FL_25_26_27_28_Group")
+    ET.SubElement(group_25_28, "lastPayExist_0")
+    ET.SubElement(group_25_28, "calcDate").text = date_doc_str
+    ET.SubElement(group_25_28, "exist_0")
+    
+    build_fl_27_28(group_25_28, row, date_doc_str)
+    
+    fl_38 = ET.SubElement(event_elem, "FL_38_ContractEnd")
+    ET.SubElement(fl_38, "date").text = date_doc_str
+
+    contract_code = extra_param if extra_param else "3"
+    ET.SubElement(fl_38, "code").text = contract_code
+    
+    fl_56 = ET.SubElement(event_elem, "FL_56_Participation")
+    ET.SubElement(fl_56, "role").text = "1"
+    ET.SubElement(fl_56, "kindCode").text = "99"
+    ET.SubElement(fl_56, "uid").text = row.get("Уникальный идентификатор договора (сделки) БАНКА", "")
+    ET.SubElement(fl_56, "fundDate").text = format_date(row.get("Дата согласия на обработку ПДН (дата договора)", ""))
+    
+    ET.SubElement(fl_56, "overdueExist_0")
+    ET.SubElement(fl_56, "stopExist_1")
 
 def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, bureau: str):
     """Универсальная функция для формирования блока Data со всеми субъектами и событиями."""
