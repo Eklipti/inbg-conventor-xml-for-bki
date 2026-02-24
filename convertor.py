@@ -177,14 +177,20 @@ def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str, event_
     fl_28 = ET.SubElement(group_25_28, "FL_28_Payment")
     last_pay = format_sum(row.get("Сумма последнего возрата", ""))
 
+    pay_date = format_date(row.get("Дата последнего возврата", date_doc_str))
+    ET.SubElement(fl_28, "date").text = pay_date
+
     ET.SubElement(fl_28, "paymentSum").text = last_pay
     ET.SubElement(fl_28, "paymentMainSum").text = last_pay
     ET.SubElement(fl_28, "paymentPercentSum").text = "0.00"
     ET.SubElement(fl_28, "paymentOtherSum").text = "0.00"
+    
+    # Логика подсчёта: 28.6 = 28.7 + 28.8 + 28.9
     ET.SubElement(fl_28, "totalSum").text = last_pay
     ET.SubElement(fl_28, "totalMainSum").text = last_pay
-    ET.SubElement(fl_28, "totalPercentSum").text = last_pay
-    ET.SubElement(fl_28, "totalOtherSum").text = last_pay
+    ET.SubElement(fl_28, "totalPercentSum").text = "0.00"
+    ET.SubElement(fl_28, "totalOtherSum").text = "0.00"
+    
     ET.SubElement(fl_28, "sizeCode").text = "3"
     ET.SubElement(fl_28, "scheduleCode").text = "3"
     ET.SubElement(fl_28, "lastMissPaySum").text = last_pay
