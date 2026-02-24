@@ -189,26 +189,9 @@ def build_event(
     elif event_type == "2_5":
         build_suffix_2_5(event_elem, row, date_doc_str, bureau, extra_param)
 
-def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str):
-    """Концовка для события 2.3"""
-
-    group_25_28 = ET.SubElement(event_2_3, "FL_25_26_27_28_Group")
-    ET.SubElement(group_25_28, "lastPayExist_0")
-    ET.SubElement(group_25_28, "calcDate").text = date_doc_str
-    ET.SubElement(group_25_28, "exist_1")
-    
+def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str):
+    """Функция для формирования блоков FL_27 и FL_28."""
     debt_remains = row.get("Остаток долга", "")
-    
-    fl_25 = ET.SubElement(group_25_28, "FL_25_Debt")
-    ET.SubElement(fl_25, "debtSum").text = debt_remains
-    ET.SubElement(fl_25, "debtMainSum").text = debt_remains
-    ET.SubElement(fl_25, "debtPercentSum").text = "0.00"
-    ET.SubElement(fl_25, "debtOtherSum").text = "0.00"
-    ET.SubElement(fl_25, "graceUnconfExist_0")
-    ET.SubElement(fl_25, "currency").text = "RUB"
-    
-    fl_26 = ET.SubElement(group_25_28, "FL_26_DebtDue")
-    ET.SubElement(fl_26, "debtDueExist_0")
     
     fl_27 = ET.SubElement(group_25_28, "FL_27_DebtOverdue")
     ET.SubElement(fl_27, "missFact_1")
@@ -241,7 +224,30 @@ def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, burea
     ET.SubElement(fl_28, "lastMissPaySum").text = last_pay
     ET.SubElement(fl_28, "paySum24").text = "0.00"
     ET.SubElement(fl_28, "payCurrency").text = "RUB"
+
+def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str):
+    """Концовка для события 2.3"""
+
+    group_25_28 = ET.SubElement(event_2_3, "FL_25_26_27_28_Group")
+    ET.SubElement(group_25_28, "lastPayExist_0")
+    ET.SubElement(group_25_28, "calcDate").text = date_doc_str
+    ET.SubElement(group_25_28, "exist_1")
     
+    debt_remains = row.get("Остаток долга", "")
+    
+    fl_25 = ET.SubElement(group_25_28, "FL_25_Debt")
+    ET.SubElement(fl_25, "debtSum").text = debt_remains
+    ET.SubElement(fl_25, "debtMainSum").text = debt_remains
+    ET.SubElement(fl_25, "debtPercentSum").text = "0.00"
+    ET.SubElement(fl_25, "debtOtherSum").text = "0.00"
+    ET.SubElement(fl_25, "graceUnconfExist_0")
+    ET.SubElement(fl_25, "currency").text = "RUB"
+    
+    fl_26 = ET.SubElement(group_25_28, "FL_26_DebtDue")
+    ET.SubElement(fl_26, "debtDueExist_0")
+    
+    build_fl_27_28(group_25_28, row, date_doc_str)
+
     ET.SubElement(ET.SubElement(event_2_3, "FL_20_JointDebtors"), "exist_0")
     ET.SubElement(ET.SubElement(event_2_3, "FL_36_1_ProvisionPaymentOffset"), "exist_0")
     
