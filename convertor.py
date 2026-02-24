@@ -106,7 +106,7 @@ def build_title_block(subject_fl: ET.Element, row: dict):
     ET.SubElement(fl_4_doc, "docCode").text = "21"       # Паспорт РФ
     ET.SubElement(fl_4_doc, "docSeries").text = row.get("Серия", "")
     ET.SubElement(fl_4_doc, "docNum").text = row.get("Номер", "")
-    ET.SubElement(fl_4_doc, "issueDate").text = row.get("Дата выдачи", "")
+    ET.SubElement(fl_4_doc, "issueDate").text = format_date(row.get("Дата выдачи", ""))
     ET.SubElement(fl_4_doc, "docIssuer").text = row.get("Кем выдан", "")
     ET.SubElement(fl_4_doc, "deptCode").text = "000-000" # hardcore
     ET.SubElement(fl_4_doc, "foreignerCode").text = "0"
@@ -122,7 +122,7 @@ def build_title_block(subject_fl: ET.Element, row: dict):
     
     # === Блок ФЛ 3 (Рождение) ===
     fl_3_birth = ET.SubElement(title, "FL_3_Birth")
-    ET.SubElement(fl_3_birth, "birthDate").text = row.get("Дата рождения", "")
+    ET.SubElement(fl_3_birth, "birthDate").text = format_date(row.get("Дата рождения", ""))
     ET.SubElement(fl_3_birth, "countryCode").text = "643"
     ET.SubElement(fl_3_birth, "birthPlace").text = row.get("Место рождения", "")
 
@@ -133,7 +133,7 @@ def build_event_2_3(events_elem: ET.Element, row: dict, date_doc_str: str, burea
     
     fl_17 = ET.SubElement(event_2_3, "FL_17_DealUid")
     ET.SubElement(fl_17, "uid").text = row.get("Уникальный идентификатор договора (сделки) БАНКА", "")
-    ET.SubElement(fl_17, "openDate").text = row.get("Дата согласия на обработку ПДН (дата договора)", "")
+    ET.SubElement(fl_17, "openDate").text = format_date(row.get("Дата согласия на обработку ПДН (дата договора)", ""))
     
     fl_18 = ET.SubElement(event_2_3, "FL_18_Deal")
     ET.SubElement(fl_18, "role").text = "1"
@@ -152,7 +152,7 @@ def build_event_2_3(events_elem: ET.Element, row: dict, date_doc_str: str, burea
     ET.SubElement(fl_18, "creditLineExist_0")
     ET.SubElement(fl_18, "floatRateExist_0")
     ET.SubElement(fl_18, "partialTransferExist_0")
-    ET.SubElement(fl_18, "startDate").text = row.get("Дата передачи (обновления)", "")
+    ET.SubElement(fl_18, "startDate").text = format_date(row.get("Дата передачи (обновления)", ""))
     ET.SubElement(fl_18, "repaymentFact_0")
     ET.SubElement(fl_18, "transferFact_0")
     ET.SubElement(fl_18, "partnerFinancingFact_0")
@@ -194,7 +194,7 @@ def build_event_2_3(events_elem: ET.Element, row: dict, date_doc_str: str, burea
     ET.SubElement(fl_27, "debtOverduePercentSum").text = "0.00"
     ET.SubElement(fl_27, "debtOverdueOtherSum").text = "0.00"
     
-    miss_date = row.get("Дата передачи (обновления)", "")
+    miss_date = format_date(row.get("Дата передачи (обновления)", ""))
     ET.SubElement(fl_27, "debtOverdueStartDate").text = miss_date
     ET.SubElement(fl_27, "mainMissDate").text = miss_date
     ET.SubElement(fl_27, "percentMissDate").text = miss_date
