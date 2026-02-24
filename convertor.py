@@ -310,7 +310,7 @@ def build_suffix_2_5(event_elem: ET.Element, row: dict, date_doc_str: str, burea
     fl_38 = ET.SubElement(event_elem, "FL_38_ContractEnd")
     ET.SubElement(fl_38, "date").text = date_doc_str
 
-    contract_code = extra_param if extra_param else "3"
+    contract_code = extra_param if extra_param else "1"
     ET.SubElement(fl_38, "code").text = contract_code
     
     fl_56 = ET.SubElement(event_elem, "FL_56_Participation")
