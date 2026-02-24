@@ -213,7 +213,11 @@ def build_event_2_3(events_elem: ET.Element, row: dict, date_doc_str: str, burea
     ET.SubElement(fl_28, "totalMainSum").text = last_pay
     ET.SubElement(fl_28, "totalPercentSum").text = last_pay
     ET.SubElement(fl_28, "totalOtherSum").text = last_pay
-    # TODO: Сюда пойдут данные по выплатам, зависящие от БКИ
+    ET.SubElement(fl_28, "sizeCode").text = "3"
+    ET.SubElement(fl_28, "scheduleCode").text = "3"
+    ET.SubElement(fl_28, "lastMissPaySum").text = last_pay
+    ET.SubElement(fl_28, "paySum24").text = "0.00"
+    ET.SubElement(fl_28, "payCurrency").text = "RUB"
     
     ET.SubElement(ET.SubElement(event_2_3, "FL_20_JointDebtors"), "exist_0")
     ET.SubElement(ET.SubElement(event_2_3, "FL_36_1_ProvisionPaymentOffset"), "exist_0")
