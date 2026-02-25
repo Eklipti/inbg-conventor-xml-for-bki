@@ -177,8 +177,8 @@ def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str, event_
     fl_28 = ET.SubElement(group_25_28, "FL_28_Payment")
     last_pay = format_sum(row.get("Сумма последнего возрата", ""))
 
-    pay_date = format_date(row.get("Дата последнего возврата", date_doc_str))
-    ET.SubElement(fl_28, "date").text = pay_date
+    #pay_date = format_date(row.get("Дата последнего возврата", date_doc_str))
+    #ET.SubElement(fl_28, "date").text = pay_date
 
     ET.SubElement(fl_28, "paymentSum").text = last_pay
     ET.SubElement(fl_28, "paymentMainSum").text = last_pay
@@ -388,7 +388,13 @@ def generate_xml_nbki(data_dict: dict, config: dict, logger: logging.Logger, now
 
 def run_conversion(file_path: Path, config_path: Path, logger: logging.Logger, is_debug: bool = False):
     logger.info("Запуск основного процесса конвертации...")
+
+    data_dict = excel_parser.parse_active_sheet(file_path, logger)
     
+    if len(data_dict) <= 1:
+        logger.warning("Нет данных для конвертации (файл пуст или содержит только заголовки).")
+        return
+
     now = datetime.now()
     date_doc_str = now.strftime("%Y-%m-%d")
     
@@ -399,12 +405,6 @@ def run_conversion(file_path: Path, config_path: Path, logger: logging.Logger, i
         run_counter = 1111
     else:
         run_counter = config_data.get("run_counter", 2640)
-    
-    data_dict = excel_parser.parse_active_sheet(file_path, logger)
-    
-    if len(data_dict) <= 1:
-        logger.warning("Нет данных для конвертации (файл пуст или содержит только заголовки).")
-        return
 
     generate_xml_okb(data_dict, config_data, logger, now, date_doc_str)
     generate_xml_scoring(data_dict, config_data, logger, now, date_doc_str, run_counter)

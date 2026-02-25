@@ -2,10 +2,29 @@ import sys
 import json
 import logging
 import xml.etree.ElementTree as ET
+import pandas as pd
 from pathlib import Path
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+def convert_xls_to_xlsx(xls_path: Path, logger: logging.Logger) -> Path:
+    """Конвертирует формат .xls во временный .xlsx с помощью pandas и xlrd."""
+    xlsx_path = xls_path.with_name(f"{xls_path.stem}_temp.xlsx")
+    logger.info(f"Конвертация старого формата {xls_path.name} в {xlsx_path.name}...")
+    
+    try:
+        df_dict = pd.read_excel(xls_path, sheet_name=None, header=None, engine="xlrd")
+        
+        with pd.ExcelWriter(xlsx_path, engine="openpyxl") as writer:
+            for sheet_name, df in df_dict.items():
+                df.to_excel(writer, sheet_name=sheet_name, index=False, header=False)
+                
+        logger.info("Конвертация успешно завершена.")
+        return xlsx_path
+    except Exception as e:
+        logger.critical(f"Ошибка при конвертации .xls в .xlsx: {e}")
+        sys.exit(1)
 
 def load_config(config_path: Path, logger: logging.Logger) -> dict:
     """Загрузка конфигурации из JSON файла."""

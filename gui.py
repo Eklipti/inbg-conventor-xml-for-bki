@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from cli import setup_logger, validate_excel
+from cli import setup_logger
 
 def run():
     # В будущем здесь будет инициализация Tkinter, PyQt или другого фреймворка
