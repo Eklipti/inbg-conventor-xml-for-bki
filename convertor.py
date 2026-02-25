@@ -176,21 +176,18 @@ def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str, event_
     
     fl_28 = ET.SubElement(group_25_28, "FL_28_Payment")
     last_pay = format_sum(row.get("Сумма последнего возрата", ""))
-
-    #pay_date = format_date(row.get("Дата последнего возврата", date_doc_str))
-    #ET.SubElement(fl_28, "date").text = pay_date
-
     ET.SubElement(fl_28, "paymentSum").text = last_pay
     ET.SubElement(fl_28, "paymentMainSum").text = last_pay
     ET.SubElement(fl_28, "paymentPercentSum").text = "0.00"
     ET.SubElement(fl_28, "paymentOtherSum").text = "0.00"
-    
-    # Логика подсчёта: 28.6 = 28.7 + 28.8 + 28.9
+
+    # Логика подсчёта: totalSum = totalMainSum + totalPercentSum + totalOtherSum
     ET.SubElement(fl_28, "totalSum").text = last_pay
     ET.SubElement(fl_28, "totalMainSum").text = last_pay
     ET.SubElement(fl_28, "totalPercentSum").text = "0.00"
     ET.SubElement(fl_28, "totalOtherSum").text = "0.00"
-    
+
+    ET.SubElement(fl_28, "date").text = date_doc_str
     ET.SubElement(fl_28, "sizeCode").text = "3"
     ET.SubElement(fl_28, "scheduleCode").text = "3"
     ET.SubElement(fl_28, "lastMissPaySum").text = last_pay
@@ -201,12 +198,16 @@ def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, burea
     """Концовка для события 2.3"""
 
     group_25_28 = ET.SubElement(event_elem, "FL_25_26_27_28_Group")
-    ET.SubElement(group_25_28, "lastPayExist_0")
+
+    last_pay = format_sum(row.get("Сумма последнего возрата", ""))
+    last_pay_exist_tag = "lastPayExist_0" if last_pay == "0.00" else "lastPayExist_1"
+
+    ET.SubElement(group_25_28, last_pay_exist_tag)
     ET.SubElement(group_25_28, "calcDate").text = date_doc_str
     ET.SubElement(group_25_28, "exist_1")
     
     debt_remains = format_sum(row.get("Остаток долга"))
-    
+
     fl_25 = ET.SubElement(group_25_28, "FL_25_Debt")
     ET.SubElement(fl_25, "debtSum").text = debt_remains
     ET.SubElement(fl_25, "debtMainSum").text = debt_remains
@@ -241,7 +242,11 @@ def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, burea
 def build_suffix_2_5(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str, extra_param: str):
     """Специфичная концовка для события 2.5"""
     group_25_28 = ET.SubElement(event_elem, "FL_25_26_27_28_Group")
-    ET.SubElement(group_25_28, "lastPayExist_0")
+
+    last_pay = format_sum(row.get("Сумма последнего возрата", ""))
+    last_pay_exist_tag = "lastPayExist_0" if last_pay == "0.00" else "lastPayExist_1"
+
+    ET.SubElement(group_25_28, last_pay_exist_tag)
     ET.SubElement(group_25_28, "calcDate").text = date_doc_str
     ET.SubElement(group_25_28, "exist_0")
     
