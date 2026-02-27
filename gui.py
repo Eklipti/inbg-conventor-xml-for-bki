@@ -33,7 +33,7 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Конвертер 758-П")
+        self.title("Conventor EFKI")
         self.geometry("700x550")
         self.minsize(600, 500)
 
