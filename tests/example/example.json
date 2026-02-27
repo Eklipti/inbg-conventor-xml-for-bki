@@ -1,0 +1,18 @@
+{
+    "organization": {
+        "inn": "1234567890",
+        "ogrn": "0987654321987",
+        "fullName": "ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ \"ОРГАНИЗАЦИЯ \"НАЗВАНИЕ\"",
+        "shortName": "ООО \"О \"Н\"",
+        "otherName": "\"OOO \"O\" O",
+        "sourceDateStart": "2000-01-14",
+        "taxCode": "1",
+        "taxNum": "1234567890"
+    },
+    "bureaus": {
+        "okb": {
+            "sourceID": "11111"
+        }
+    },
+    "run_counter": 9999
+}

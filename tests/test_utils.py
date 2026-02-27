@@ -1,6 +1,7 @@
 import json
 import logging
 import xml.etree.ElementTree as ET
+import pytest
 from pathlib import Path
 
 from utils import (
@@ -70,16 +71,41 @@ def test_format_sum():
 # === ТЕСТЫ ДЛЯ РАБОТЫ С ФАЙЛАМИ ===
 
 def test_config_operations(tmp_path: Path):
-    """Проверяем загрузку и сохранение конфига."""
-    config_file = tmp_path / "test_config.json"
-    test_data = {"run_counter": 2640, "bureau": "okb"}
+    """Проверяем загрузку реального example.json и валидацию структуры."""
+    
+    example_path = Path(__file__).parent / "example" / "example.json"
+    
+    assert example_path.exists(), f"Файл не найден по пути: {example_path}"
 
-    save_config(test_data, config_file, dummy_logger)
-    assert config_file.exists()
+    valid_data = load_config(example_path, dummy_logger)
+    assert valid_data["run_counter"] == 9999
+    assert valid_data["organization"]["inn"] == "1234567890"
 
-    loaded_data = load_config(config_file, dummy_logger)
-    assert loaded_data["run_counter"] == 2640
-    assert loaded_data["bureau"] == "okb"
+    temp_config_file = tmp_path / "broken_config.json"
+
+    invalid_no_org = valid_data.copy()
+    del invalid_no_org["organization"]
+    save_config(invalid_no_org, temp_config_file, dummy_logger)
+    with pytest.raises(SystemExit):
+        load_config(temp_config_file, dummy_logger)
+
+    invalid_missing_field = json.loads(json.dumps(valid_data))
+    del invalid_missing_field["organization"]["ogrn"]
+    save_config(invalid_missing_field, temp_config_file, dummy_logger)
+    with pytest.raises(SystemExit):
+        load_config(temp_config_file, dummy_logger)
+
+    invalid_run_counter_type = valid_data.copy()
+    invalid_run_counter_type["run_counter"] = "9999"
+    save_config(invalid_run_counter_type, temp_config_file, dummy_logger)
+    with pytest.raises(SystemExit):
+        load_config(temp_config_file, dummy_logger)
+        
+    invalid_no_run_counter = valid_data.copy()
+    del invalid_no_run_counter["run_counter"]
+    save_config(invalid_no_run_counter, temp_config_file, dummy_logger)
+    with pytest.raises(SystemExit):
+        load_config(temp_config_file, dummy_logger)
 
 def test_save_xml(tmp_path: Path):
     """Проверяем, что XML корректно сохраняется на диск."""
