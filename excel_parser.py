@@ -1,6 +1,7 @@
 import openpyxl
 import logging
 import warnings
+import sys
 from datetime import datetime
 from pathlib import Path
 from utils import convert_xls_to_xlsx

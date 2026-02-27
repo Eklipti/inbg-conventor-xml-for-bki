@@ -34,7 +34,7 @@ def run():
     
     logger.debug("Запуск в консольном режиме...")
     if args.debug:
-        logger.debug("ВНИМАНИЕ: Включен режим отладки (--debug)!")
+        logger.debug("Включен режим отладки.")
     
     file_path = Path(args.input) 
     config_path = Path(args.json)
