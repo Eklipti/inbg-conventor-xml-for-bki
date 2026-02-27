@@ -1,6 +1,5 @@
 /.venv
-/docs
-/__pycache__
+**/__pycache__
 config.json
 *.xml
 /tmpabs
