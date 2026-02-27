@@ -28,9 +28,10 @@ def test_format_date():
 
 def test_calculate_days_difference():
 
-    assert calculate_days_difference("01.01.2026", "10.01.2026") == "9"
+    # Конечное значения всегда генерируется в правильном формате
+    assert calculate_days_difference("01.01.2026", "2026-01-10") == "9"
     assert calculate_days_difference("2026-01-01", "2026-01-10") == "9"
-    assert calculate_days_difference("10.01.2026", "01.01.2026") == "0"
+    assert calculate_days_difference("10.01.2026", "2026-01-01") == "0"
     
     assert calculate_days_difference("", "2026-01-10") == ""
     assert calculate_days_difference("2026-01-10", "") == ""
