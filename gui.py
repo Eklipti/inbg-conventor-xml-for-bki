@@ -1,13 +1,13 @@
 import logging
 import sys
 import threading
+import convertor
 
 import customtkinter as ctk
+import tkinter.messagebox as messagebox
 
 from pathlib import Path
 from tkinter import filedialog
-
-import convertor
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
@@ -143,10 +143,15 @@ class App(ctk.CTk):
 
         try:
             convertor.run_conversion(Path(input_path), Path(config_path), logger, is_debug=is_debug)
+            self.after(0, lambda: messagebox.showinfo("Готово", "Конвертация успешно завершена!\nФайлы сохранены в папке с программой."))
+            
         except Exception as e:
             logger.critical(f"Непредвиденная ошибка в процессе конвертации: {e}")
             import traceback
             logger.debug(traceback.format_exc())
+            
+            self.after(0, lambda: messagebox.showerror("Ошибка", f"Произошла ошибка при конвертации:\n{e}"))
+            
         finally:
             self.after(0, lambda: self.btn_run.configure(state="normal", text="КОНВЕРТАЦИЯ"))
 
