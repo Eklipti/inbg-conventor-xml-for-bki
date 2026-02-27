@@ -26,17 +26,42 @@ def convert_xls_to_xlsx(xls_path: Path, logger: logging.Logger) -> Path:
         logger.critical(f"Ошибка при конвертации .xls в .xlsx: {e}")
         sys.exit(1)
 
+def validate_config(config_data: dict, logger: logging.Logger) -> bool:
+    """Проверяет структуру конфигурационного файла на соответствие требованиям."""
+    if "organization" not in config_data:
+        logger.critical("В конфигурации отсутствует обязательный блок 'organization'.")
+        return False
+        
+    org = config_data["organization"]
+    required_org_keys = ["inn", "ogrn", "fullName", "shortName", "otherName", "sourceDateStart"]
+    for key in required_org_keys:
+        if key not in org:
+            logger.critical(f"В блоке 'organization' отсутствует обязательное поле: '{key}'.")
+            return False
+            
+    if "run_counter" not in config_data or not isinstance(config_data["run_counter"], int):
+        logger.critical("Параметр 'run_counter' отсутствует или не является целым числом (int).")
+        return False
+        
+    return True
+
 def load_config(config_path: Path, logger: logging.Logger) -> dict:
-    """Загрузка конфигурации из JSON файла."""
+    """Загрузка конфигурации из JSON файла с валидацией."""
     if not config_path.exists():
         logger.critical(f"Конфигурационный файл не найден: {config_path}")
         sys.exit(1)
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            data = json.load(f)
     except Exception as e:
         logger.critical(f"Ошибка при чтении {config_path}: {e}")
         sys.exit(1)
+        
+    # Валидируем структуру. Если кривая - завершаем работу
+    if not validate_config(data, logger):
+        sys.exit(1)
+        
+    return data
 
 def format_date(date_str: str) -> str:
     """Переводит дату из ДД.ММ.ГГГГ в ГГГГ-ММ-ДД."""
