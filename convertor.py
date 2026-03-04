@@ -49,7 +49,9 @@ def build_title_block(subject_fl: ET.Element, row: dict):
     fl_1_name = ET.SubElement(fl_1_4_group, "FL_1_Name")
     ET.SubElement(fl_1_name, "lastName").text = clean_fio(row.get("Фамилия", ""))
     ET.SubElement(fl_1_name, "firstName").text = clean_fio(row.get("Имя", ""))
-    ET.SubElement(fl_1_name, "middleName").text = clean_fio(row.get("Отчество", ""))
+    middle_name = clean_fio(row.get("Отчество", ""))
+    if middle_name:
+        ET.SubElement(fl_1_name, "middleName").text = middle_name
     
     country_code = str(row.get("Код страны", "")).strip()
     doc_series = str(row.get("Серия", "")).strip()
