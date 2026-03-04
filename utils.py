@@ -82,13 +82,12 @@ def clean_fio(text: str) -> str:
     return str(text).replace("_", " ").replace("\xa0", " ").strip()
 
 def clean_issuer(text: str) -> str:
-    """Очищает поле 'Кем выдан' от запрещенных символов и обрезает до 200 символов."""
+    """Очищает текстовые поля (Кем выдан, Место рождения) от мусора."""
     if not text:
         return ""
-    text = str(text)
-    for char in ["*", "<", ">", "«", "»"]:
+    text = str(text).upper() # Требуется верхний регистр для таких полей
+    for char in ["*", "<", ">", "«", "»", '"']:
         text = text.replace(char, " ")
-    # Заменяем случайно образовавшиеся двойные пробелы на одинарные и обрезаем
     text = " ".join(text.split())
     return text[:200]
 

@@ -86,7 +86,9 @@ def build_title_block(subject_fl: ET.Element, row: dict):
     fl_3_birth = ET.SubElement(title, "FL_3_Birth")
     ET.SubElement(fl_3_birth, "birthDate").text = format_date(row.get("Дата рождения", ""))
     ET.SubElement(fl_3_birth, "countryCode").text = "643"
-    ET.SubElement(fl_3_birth, "birthPlace").text = row.get("Место рождения", "")
+    birth_place = clean_issuer(row.get("Место рождения", ""))
+    if birth_place:
+        ET.SubElement(fl_3_birth, "birthPlace").text = birth_place
 
 def build_event(
     events_elem: ET.Element, 
