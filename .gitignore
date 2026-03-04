@@ -3,3 +3,5 @@
 config.json
 /tmpabs
 .pytest_cache/
+**.docx
+**.tmp
