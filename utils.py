@@ -75,11 +75,16 @@ def format_date(date_str: str) -> str:
     return date_str
 
 def clean_fio(text: str) -> str:
-    """Очищает ФИО: заменяет '_' и неразрывные пробелы на обычные, убирает пробелы по краям."""
+    """Очищает ФИО: убирает мусор и типичные заглушки."""
     if not text:
         return ""
-    # \xa0 - неразрывный пробел (NBSP)
-    return str(text).replace("_", " ").replace("\xa0", " ").strip()
+        
+    cleaned = str(text).replace("_", " ").replace("\xa0", " ").strip()
+    
+    if cleaned in ("-", ".", "None", "nan", "NaN", "нет"):
+        return ""
+        
+    return cleaned
 
 def clean_issuer(text: str) -> str:
     """Очищает текстовые поля (Кем выдан, Место рождения) от мусора."""
