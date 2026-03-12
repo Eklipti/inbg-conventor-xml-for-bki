@@ -200,7 +200,7 @@ def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str, event_
     ET.SubElement(fl_28, "payCurrency").text = "RUB"
 
 def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str):
-    """Концовка для события 2.3"""
+    """Параметры для события 2.3"""
 
     group_25_28 = ET.SubElement(event_elem, "FL_25_26_27_28_Group")
 
@@ -245,14 +245,14 @@ def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, burea
     ET.SubElement(fl_56, "stopExist_0")
 
 def build_suffix_2_5(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str, extra_param: str):
-    """Специфичная концовка для события 2.5"""
+    """Параметры для события 2.5"""
     group_25_28 = ET.SubElement(event_elem, "FL_25_26_27_28_Group")
 
     last_pay = format_sum(row.get("Сумма последнего возрата", ""))
     last_pay_exist_tag = "lastPayExist_0" if last_pay == "0.00" else "lastPayExist_1"
 
     ET.SubElement(group_25_28, last_pay_exist_tag)
-    ET.SubElement(group_25_28, "calcDate").text = date_doc_str
+    ET.SubElement(group_25_28, "calcDate").text = format_date(row.get("Дата последнего возврата", ""))
     ET.SubElement(group_25_28, "exist_0")
     
     build_fl_27_28(group_25_28, row, date_doc_str, "2_5")
