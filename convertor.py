@@ -101,15 +101,22 @@ def build_event(
     ) -> None:
     """Универсальная сборка события (2.3 или 2.5)."""
 
+    status_raw = row.get("Статус долга (Операция)", "").strip().lower()
+    
+    op_code = "A" if status_raw == "add" else "B"
+
     event_tag = f"FL_Event_{event_type}"
     event_attrs = {
         "orderNum": str(order_num),
         "eventDate": date_doc_str,
-        "operationCode": "B"
+        "operationCode": op_code
     }
 
     event_elem = ET.SubElement(events_elem, event_tag, event_attrs)
     
+    if row.get("Статус долга (Операция)", "").strip().lower() == "add":
+        build_suffix_2_11_2(event_elem)
+
     fl_17 = ET.SubElement(event_elem, "FL_17_DealUid")
     ET.SubElement(fl_17, "uid").text = row.get("Уникальный идентификатор договора (сделки) БАНКА", "")
     ET.SubElement(fl_17, "openDate").text = format_date(row.get("Дата согласия на обработку ПДН (дата договора)", ""))
@@ -198,6 +205,20 @@ def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str, event_
     ET.SubElement(fl_28, "lastMissPaySum").text = last_pay
     ET.SubElement(fl_28, "paySum24").text = "0.00"
     ET.SubElement(fl_28, "payCurrency").text = "RUB"
+
+def build_suffix_2_11_2(event_elem: ET.Element):
+    """Формирует блоки FL_8, FL_9, FL_11 и FL_12 для статуса 'add'."""
+    fl_8 = ET.SubElement(event_elem, "FL_8_AddrReg")
+    ET.SubElement(fl_8, "code").text = "3"
+    
+    fl_9 = ET.SubElement(event_elem, "FL_9_AddrFact")
+    ET.SubElement(fl_9, "exist_0")
+    
+    fl_11 = ET.SubElement(event_elem, "FL_11_IndividualEntrepreneur")
+    ET.SubElement(fl_11, "regFact_0")
+    
+    fl_12 = ET.SubElement(event_elem, "FL_12_Capacity")
+    ET.SubElement(fl_12, "code").text = "1"
 
 def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str):
     """Параметры для события 2.3"""
@@ -288,7 +309,10 @@ def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, burea
         events = ET.SubElement(subject_fl, "Events")
         
         status_raw = row.get("Статус долга (Операция)", "").strip().lower()
-        if status_raw.startswith("edit"):
+        if status_raw.startswith("add"):
+            build_event(events, row, date_doc_str, bureau, event_counter, event_type="2_11_2")
+            event_counter += 1
+        elif status_raw.startswith("edit"):
             build_event(events, row, date_doc_str, bureau, event_counter, event_type="2_3")
             event_counter += 1
         elif status_raw.startswith("close"):
