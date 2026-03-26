@@ -152,7 +152,7 @@ def build_event(
     ET.SubElement(fl_21, "mainPaySum").text = "0.00"
     ET.SubElement(fl_21, "percentPaySum").text = "0.00"
 
-    if event_type == "2_3":
+    if event_type in ("2_3", "2_11_2"):
         build_suffix_2_3(event_elem, row, date_doc_str, bureau)
     elif event_type == "2_5":
         build_suffix_2_5(event_elem, row, date_doc_str, bureau, extra_param)
