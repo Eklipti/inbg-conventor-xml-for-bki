@@ -1,9 +1,8 @@
-import sys
 import logging
+import sys
 
 import cli
 import gui
-
 
 logger = logging.getLogger(__name__)
 
