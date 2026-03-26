@@ -43,7 +43,6 @@ def build_source_block(parent_element: ET.Element, config: dict, date_str: str):
     ET.SubElement(tax_group, "taxCode").text = org.get("taxCode", "")
     ET.SubElement(tax_group, "taxNum").text = org.get("inn", "")
 
-    # передаем строкой, так как форматы дат могут отличаться в других местах, но тут нужен YYYY-MM-DD
     ET.SubElement(org_source, "sourceCreditInfoDate").text = date_str
 
 
@@ -75,13 +74,10 @@ def build_title_block(subject_fl: ET.Element, row: dict):
     doc_code = "21"
 
     if not country_code:
+        logger.debug('Не найден код страны, замена на "9", серия и номер паспорта замены нулями.')
         doc_code = "9"
         doc_series = "00"
         doc_num = "000000"
-    elif doc_series in ("", "0000") and doc_num in ("", "000000"):
-        doc_code = "14"
-        doc_series = "Н-Е-Т"
-        doc_num = "Д-А-Н-Н-Ы-Х"
 
     fl_4_doc = ET.SubElement(fl_1_4_group, "FL_4_Doc")
     ET.SubElement(fl_4_doc, "countryCode").text = "643"  # Россия
@@ -93,12 +89,10 @@ def build_title_block(subject_fl: ET.Element, row: dict):
     ET.SubElement(fl_4_doc, "deptCode").text = "000-000"
     ET.SubElement(fl_4_doc, "foreignerCode").text = "3"
 
-    # === Блок ФЛ 2 и ФЛ 5 ===
     fl_2_5_group = ET.SubElement(title, "FL_2_5_Group")
     ET.SubElement(ET.SubElement(fl_2_5_group, "FL_2_PrevName"), "prevNameFlag_0")
     ET.SubElement(ET.SubElement(fl_2_5_group, "FL_5_PrevDoc"), "prevDocFact_0")
 
-    # === Блок ФЛ 3 (Рождение) ===
     fl_3_birth = ET.SubElement(title, "FL_3_Birth")
     ET.SubElement(fl_3_birth, "birthDate").text = format_date(row.get("Дата рождения", ""))
     ET.SubElement(fl_3_birth, "countryCode").text = "643"
@@ -403,6 +397,8 @@ def finalize_and_save_xml(bureau: str, attr: dict, filename: str, data_dict: dic
         config (dict): Конфигурация организации.
         date_doc_str (str): Дата формирования документа.
     """
+    logger.debug("Сборка XML-дерева и сохранения на диск.")
+
     root = ET.Element("Document", attr)
     build_source_block(root, config, date_doc_str)
     build_data_block(root, data_dict, date_doc_str, bureau=bureau)
@@ -411,7 +407,7 @@ def finalize_and_save_xml(bureau: str, attr: dict, filename: str, data_dict: dic
 
 def generate_xml_okb(data_dict: dict, config: dict, now: datetime, date_doc_str: str):
     """Подготавливает атрибуты и генерирует XML-файл в формате для ОКБ."""
-    logger.debug("Генерация XML для ОКБ.")
+    logger.info("Генерация XML для ОКБ.")
     org = config.get("organization", {})
     okb_conf = config.get("bureaus", {}).get("okb", {})
 
@@ -438,7 +434,7 @@ def generate_xml_okb(data_dict: dict, config: dict, now: datetime, date_doc_str:
 
 def generate_xml_scoring(data_dict: dict, config: dict, now: datetime, date_doc_str: str, run_counter: int):
     """Подготавливает атрибуты и генерирует XML-файл в формате для Скоринга."""
-    logger.debug("Генерация XML для Скоринга.")
+    logger.info("Генерация XML для Скоринга.")
     org = config.get("organization", {})
     subjects_count = str(len(data_dict) - 1)
 
@@ -463,7 +459,7 @@ def generate_xml_scoring(data_dict: dict, config: dict, now: datetime, date_doc_
 
 def generate_xml_kbrs(data_dict: dict, config: dict, now: datetime, date_doc_str: str, run_counter: int):
     """Подготавливает атрибуты и генерирует XML-файл в формате для КБРС."""
-    logger.debug("Генерация XML для КБРС.")
+    logger.info("Генерация XML для КБРС.")
     org = config.get("organization", {})
     subjects_count = str(len(data_dict) - 1)
 
@@ -488,7 +484,7 @@ def generate_xml_kbrs(data_dict: dict, config: dict, now: datetime, date_doc_str
 
 def generate_xml_nbki(data_dict: dict, config: dict, now: datetime, date_doc_str: str):
     """Подготавливает атрибуты и генерирует XML-файл в формате для НБКИ."""
-    logger.debug("Генерация XML для НБКИ.")
+    logger.info("Генерация XML для НБКИ.")
     org = config.get("organization", {})
     subjects_count = str(len(data_dict) - 1)
     reg_num = f"SJ01SS000001_{now.strftime('%Y%m%d')}_{now.strftime('%H%M%S')}"
@@ -521,12 +517,12 @@ def run_conversion(file_path: Path, config_path: Path, is_debug: bool = False):
         is_debug (bool, optional): Флаг режима отладки (использует статичный
             счетчик и не обновляет конфиг). По умолчанию False.
     """
-    logger.info("Запуск основного процесса конвертации...")
+    logger.info("Запуск основного процесса конвертации.")
 
     data_dict = excel_parser.parse_active_sheet(file_path)
 
     if len(data_dict) <= 1:
-        logger.warning("Нет данных для конвертации (файл пуст или содержит только заголовки).")
+        logger.warning("Нет данных для конвертации.")
         return
 
     now = datetime.now()
@@ -548,7 +544,5 @@ def run_conversion(file_path: Path, config_path: Path, is_debug: bool = False):
     if not is_debug:
         config_data["run_counter"] = run_counter + 1
         save_config(config_data, config_path)
-    else:
-        logger.debug("Режим отладки: перезапись config.json пропущена, боевой счетчик не изменен.")
 
-    logger.info("Конвертация завершена!")
+    logger.info("Конвертация завершена.")

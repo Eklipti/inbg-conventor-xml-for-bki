@@ -176,7 +176,6 @@ class App(ctk.CTk):
         root_logger.addHandler(gui_handler)
 
         logger = logging.getLogger(__name__)
-        logger.info("Запуск в графическом режиме.")
 
         if is_debug:
             logger.debug("Включен режим отладки.")

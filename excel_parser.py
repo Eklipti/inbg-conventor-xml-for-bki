@@ -35,7 +35,7 @@ def validate_excel(file_path: Path) -> bool:
         sheet_names = wb.sheetnames
         wb.close()
     except Exception as e:
-        logger.critical(f"Не удалось прочитать файл. Убедитесь, что это корректный формат Excel. Ошибка: {e}")
+        logger.critical(f"Не удалось прочитать файл. Ошибка: {e}")
         sys.exit(1)
 
     required_sheets = {"Активные"}
@@ -47,7 +47,7 @@ def validate_excel(file_path: Path) -> bool:
         )
         sys.exit(1)
 
-    logger.info("Валидация файла прошла успешно.")
+    logger.info("Валидация файла успешна.")
     return True
 
 
@@ -73,7 +73,7 @@ def parse_active_sheet(file_path: Path) -> dict:
     parsed_data: dict[int, Any] = {0: "null"}
 
     if actual_file_path.suffix.lower() == ".xls":
-        logger.warning("Обнаружен старый формат .xls. Конвертирую во временный xlsx.")
+        logger.warning("Обнаружен старый формат xls. Конвертация во временный xlsx.")
         temp_xlsx = convert_xls_to_xlsx(actual_file_path)
         if not temp_xlsx:
             logger.critical("Отмена парсинга из-за ошибки смены формата.")
@@ -85,7 +85,7 @@ def parse_active_sheet(file_path: Path) -> dict:
         if not validate_excel(actual_file_path):
             return parsed_data
 
-        logger.debug(f"Начинаем парсинг данных из файла: {str(actual_file_path)[-10:]}")
+        logger.debug(f"Парсинг данных из файла: {str(actual_file_path)[-10:]}")
         wb = openpyxl.load_workbook(actual_file_path, data_only=True)
         sheet = wb["Активные"]
 
@@ -97,7 +97,7 @@ def parse_active_sheet(file_path: Path) -> dict:
         col_v33 = headers.get("# в33")
 
         if col_v33 is None:
-            logger.critical("На второй строке не найден столбец '# в33'.")
+            logger.critical('На второй строке не найден столбец "# в33".')
             wb.close()
             sys.exit(1)
 
@@ -109,6 +109,7 @@ def parse_active_sheet(file_path: Path) -> dict:
             "Место рождения",
             "Дата выдачи",
             "Кем выдан",
+            "Код страны",
             "Уникальный идентификатор договора (сделки) БАНКА",
             "Дата согласия на обработку ПДН (дата договора)",
             "Статус долга (Операция)",
@@ -128,7 +129,7 @@ def parse_active_sheet(file_path: Path) -> dict:
                 return val.strftime("%d.%m.%Y")
             return str(val).strip()
 
-        logger.info("Заголовки найдены.")
+        logger.debug("Заголовки найдены.")
 
         for row_idx, row in enumerate(sheet.iter_rows(min_row=3, values_only=True), start=3):
             v33_val = row[col_v33]
@@ -163,7 +164,7 @@ def parse_active_sheet(file_path: Path) -> dict:
                 logger.warning(f"Строка {row_idx}: Не удалось преобразовать '# в33' в число: {v33_val}. Пропущена.")
 
         wb.close()
-        logger.debug(f"Парсинг листа 'Активные' завершен. Собрано записей: {len(parsed_data) - 1}")
+        logger.debug(f'Парсинг листа "Активные" завершен. Собрано записей: {len(parsed_data) - 1}')
 
         return parsed_data
 
@@ -171,6 +172,6 @@ def parse_active_sheet(file_path: Path) -> dict:
         if is_temp_file and actual_file_path.exists():
             try:
                 actual_file_path.unlink()
-                logger.debug(f"Временный файл {actual_file_path.name} успешно удален.")
+                logger.debug(f"Временный файл {actual_file_path.name} удален.")
             except Exception as e:
                 logger.warning(f"Не удалось удалить временный файл {actual_file_path.name}: {e}")

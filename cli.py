@@ -27,7 +27,6 @@ def run():
     args = parser.parse_args()
     setup_app_logging(args.verbose)
 
-    logger.debug("Запуск в консольном режиме...")
     if args.debug:
         logger.debug("Включен режим отладки.")
 

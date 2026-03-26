@@ -177,7 +177,8 @@ def save_xml(root_element: ET.Element, filename: str):
 
     try:
         tree.write(filename, encoding="UTF-8", xml_declaration=True)
-        logger.debug(f"Файл успешно сформирован: {filename}")
+        logger.info(f"Файл успешно сформирован.")
+        logger.debug(f"Имя файла: {filename}")
     except Exception as e:
         logger.error(f"Ошибка при сохранении {filename}: {e}")
 
