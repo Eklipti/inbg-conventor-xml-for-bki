@@ -10,9 +10,10 @@ import openpyxl
 from utils import convert_xls_to_xlsx
 
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
+logger = logging.getLogger(__name__)
 
 
-def validate_excel(file_path: Path, logger: logging.Logger) -> bool:
+def validate_excel(file_path: Path) -> bool:
     """Проверяет существование Excel-файла и наличие в нем обязательных листов.
 
     Функция убеждается, что файл доступен по указанному пути, может быть
@@ -21,7 +22,6 @@ def validate_excel(file_path: Path, logger: logging.Logger) -> bool:
 
     Args:
         file_path (Path): Путь к проверяемому файлу Excel.
-        logger (logging.Logger): Настроенный логгер для вывода статуса и ошибок.
 
     Returns:
         bool: True, если файл валиден и содержит необходимые листы, иначе False.
@@ -51,7 +51,7 @@ def validate_excel(file_path: Path, logger: logging.Logger) -> bool:
     return True
 
 
-def parse_active_sheet(file_path: Path, logger: logging.Logger) -> dict:
+def parse_active_sheet(file_path: Path) -> dict:
     """Парсит данные из листа "Активные" переданного Excel-файла.
 
     Считывает заголовки со второй строки и собирает значения по стандартизированному
@@ -62,7 +62,6 @@ def parse_active_sheet(file_path: Path, logger: logging.Logger) -> dict:
 
     Args:
         file_path (Path): Путь к целевому Excel-файлу (.xls или .xlsx).
-        logger (logging.Logger): Настроенный логгер для записи процесса парсинга.
 
     Returns:
         dict: Словарь с извлеченными данными. Ключи — ID из колонки '# в33' (int),
@@ -75,7 +74,7 @@ def parse_active_sheet(file_path: Path, logger: logging.Logger) -> dict:
 
     if actual_file_path.suffix.lower() == ".xls":
         logger.warning("Обнаружен старый формат .xls. Конвертирую во временный xlsx.")
-        temp_xlsx = convert_xls_to_xlsx(actual_file_path, logger)
+        temp_xlsx = convert_xls_to_xlsx(actual_file_path)
         if not temp_xlsx:
             logger.critical("Отмена парсинга из-за ошибки смены формата.")
             sys.exit(1)
@@ -83,7 +82,7 @@ def parse_active_sheet(file_path: Path, logger: logging.Logger) -> dict:
         is_temp_file = True
 
     try:
-        if not validate_excel(actual_file_path, logger):
+        if not validate_excel(actual_file_path):
             return parsed_data
 
         logger.debug(f"Начинаем парсинг данных из файла: {str(actual_file_path)[-10:]}")

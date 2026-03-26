@@ -1,34 +1,11 @@
 import argparse
 import logging
-import sys
 from pathlib import Path
 
 import convertor
+from logger_config import setup_app_logging
 
-
-def setup_logger(is_verbose: bool):
-    """Настраивает логгер для вывода сообщений в консоль.
-
-    Args:
-        is_verbose (bool): Флаг включения подробного вывода. Если True,
-            устанавливается уровень DEBUG, иначе — CRITICAL.
-
-    Returns:
-        logging.Logger: Настроенный экземпляр логгера "AppLogger".
-    """
-    logger = logging.getLogger("AppLogger")
-    level = logging.DEBUG if is_verbose else logging.CRITICAL
-
-    logger.setLevel(level)
-    handler = logging.StreamHandler(sys.stdout)
-    formatter = logging.Formatter("%(levelname)s: %(message)s")
-    handler.setFormatter(formatter)
-
-    if logger.hasHandlers():
-        logger.handlers.clear()
-
-    logger.addHandler(handler)
-    return logger
+logger = logging.getLogger(__name__)
 
 
 def run():
@@ -48,7 +25,7 @@ def run():
     )
 
     args = parser.parse_args()
-    logger = setup_logger(args.verbose)
+    setup_app_logging(args.verbose)
 
     logger.debug("Запуск в консольном режиме...")
     if args.debug:
@@ -57,4 +34,4 @@ def run():
     file_path = Path(args.input)
     config_path = Path(args.json)
 
-    convertor.run_conversion(file_path, config_path, logger, is_debug=args.debug)
+    convertor.run_conversion(file_path, config_path, is_debug=args.debug)

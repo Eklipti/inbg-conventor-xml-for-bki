@@ -11,7 +11,7 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-def convert_xls_to_xlsx(xls_path: Path, logger: logging.Logger) -> Path:
+def convert_xls_to_xlsx(xls_path: Path) -> Path:
     """Конвертирует устаревший формат .xls во временный файл .xlsx.
 
     Использует библиотеки pandas и xlrd для чтения данных и движок openpyxl
@@ -19,7 +19,6 @@ def convert_xls_to_xlsx(xls_path: Path, logger: logging.Logger) -> Path:
 
     Args:
         xls_path (Path): Путь к исходному файлу .xls.
-        logger (logging.Logger): Логгер для записи процесса и ошибок.
 
     Returns:
         Path: Путь к созданному временному файлу .xlsx.
@@ -41,7 +40,7 @@ def convert_xls_to_xlsx(xls_path: Path, logger: logging.Logger) -> Path:
         sys.exit(1)
 
 
-def validate_config(config_data: dict, logger: logging.Logger) -> bool:
+def validate_config(config_data: dict) -> bool:
     """Проверяет корректность структуры конфигурационного словаря.
 
     Убеждается, что присутствуют обязательный блок "organization", все
@@ -50,7 +49,6 @@ def validate_config(config_data: dict, logger: logging.Logger) -> bool:
 
     Args:
         config_data (dict): Словарь с конфигурационными данными.
-        logger (logging.Logger): Логгер для вывода сообщений о недостающих полях.
 
     Returns:
         bool: True, если конфигурация валидна, иначе False.
@@ -73,7 +71,7 @@ def validate_config(config_data: dict, logger: logging.Logger) -> bool:
     return True
 
 
-def load_config(config_path: Path, logger: logging.Logger) -> dict:
+def load_config(config_path: Path) -> dict:
     """Загружает конфигурацию из JSON-файла и проводит её валидацию.
 
     В случае отсутствия файла, ошибок чтения или невалидной структуры
@@ -81,7 +79,6 @@ def load_config(config_path: Path, logger: logging.Logger) -> dict:
 
     Args:
         config_path (Path): Путь к JSON-файлу конфигурации.
-        logger (logging.Logger): Логгер приложения.
 
     Returns:
         dict: Словарь с загруженными конфигурационными данными.
@@ -96,7 +93,7 @@ def load_config(config_path: Path, logger: logging.Logger) -> dict:
         logger.critical(f"Ошибка при чтении {config_path}: {e}")
         sys.exit(1)
 
-    if not validate_config(data, logger):
+    if not validate_config(data):
         sys.exit(1)
 
     return data
@@ -168,13 +165,12 @@ def clean_issuer(text: str) -> str:
     return text[:200]
 
 
-def save_xml(root_element: ET.Element, filename: str, logger: logging.Logger):
+def save_xml(root_element: ET.Element, filename: str):
     """Сохраняет XML-дерево в файл с форматированием (отступами) и декларацией.
 
     Args:
         root_element (ET.Element): Корневой элемент готового XML-дерева.
         filename (str): Имя (или путь) целевого файла для сохранения.
-        logger (logging.Logger): Логгер для записи статуса операции.
     """
     tree = ET.ElementTree(root_element)
     ET.indent(tree, space="  ", level=0)
@@ -246,7 +242,7 @@ def format_sum(value) -> str:
         return "0.00"
 
 
-def save_config(config_data: dict, config_path: Path, logger: logging.Logger):
+def save_config(config_data: dict, config_path: Path):
     """Сохраняет обновленный словарь конфигурации обратно в JSON-файл.
 
     Используется для сохранения инкрементированного счетчика запусков (run_counter)
@@ -255,7 +251,6 @@ def save_config(config_data: dict, config_path: Path, logger: logging.Logger):
     Args:
         config_data (dict): Словарь с актуальными данными конфигурации.
         config_path (Path): Путь к целевому JSON-файлу.
-        logger (logging.Logger): Логгер приложения.
     """
     try:
         with open(config_path, "w", encoding="utf-8") as f:

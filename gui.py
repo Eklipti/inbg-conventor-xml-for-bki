@@ -7,9 +7,11 @@ from tkinter import filedialog
 import customtkinter as ctk
 
 import convertor
+from logger_config import setup_app_logging
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
+logger = logging.getLogger(__name__)
 
 
 class TextBoxLogHandler(logging.Handler):
@@ -164,24 +166,23 @@ class App(ctk.CTk):
             is_debug (bool): Флаг режима отладки.
         """
         """Функция, которая выполняется в фоновом потоке."""
-        logger = logging.getLogger("GuiLogger")
-        level = logging.DEBUG if is_verbose else logging.INFO
-        logger.setLevel(level)
+        setup_app_logging(is_verbose)
 
-        if logger.hasHandlers():
-            logger.handlers.clear()
+        root_logger = logging.getLogger()
+        gui_handler = TextBoxLogHandler(self.log_textbox, self)
 
-        handler = TextBoxLogHandler(self.log_textbox, self)
-        formatter = logging.Formatter("%(levelname)s: %(message)s")
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+        formatter = logging.Formatter("%(asctime)s - [%(levelname)s] - [%(module)s] - %(message)s", "%H:%M:%S")
+        gui_handler.setFormatter(formatter)
+        root_logger.addHandler(gui_handler)
 
+        logger = logging.getLogger(__name__)
         logger.info("Запуск в графическом режиме.")
+
         if is_debug:
             logger.debug("Включен режим отладки.")
 
         try:
-            convertor.run_conversion(Path(input_path), Path(config_path), logger, is_debug=is_debug)
+            convertor.run_conversion(Path(input_path), Path(config_path), is_debug=is_debug)
             message = "Конвертация успешно завершена!\nФайлы сохранены в папке с программой"
             self.after(0, lambda: messagebox.showinfo("Готово", message))
 
