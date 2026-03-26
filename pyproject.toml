@@ -1,0 +1,40 @@
+[project]
+name = "app5"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "customtkinter==5.2.2",
+    "openpyxl>=3.1.2",
+    "pandas==2.2.3",
+    "pytest==8.3.0",
+    "xlrd>=2.0.1",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "ruff>=0.15.7",
+]
+
+[tool.ruff]
+line-length = 121
+target-version = "py313"
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "B",
+    "UP",
+]
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.13"
+check_untyped_defs = true
+warn_return_any = true
+warn_unreachable = true
+ignore_missing_imports = true

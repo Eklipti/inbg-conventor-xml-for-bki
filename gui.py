@@ -1,19 +1,20 @@
 import logging
-import sys
 import threading
-import convertor
-
-import customtkinter as ctk
 import tkinter.messagebox as messagebox
-
 from pathlib import Path
 from tkinter import filedialog
+
+import customtkinter as ctk
+
+import convertor
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
+
 class TextBoxLogHandler(logging.Handler):
     """Обработчик логов, который выводит текст в виджет CustomTkinter."""
+
     def __init__(self, textbox, app_instance):
         super().__init__()
         self.textbox = textbox
@@ -28,6 +29,7 @@ class TextBoxLogHandler(logging.Handler):
         self.textbox.insert("end", msg + "\n")
         self.textbox.configure(state="disabled")
         self.textbox.see("end")
+
 
 class App(ctk.CTk):
     def __init__(self):
@@ -67,7 +69,9 @@ class App(ctk.CTk):
         self.frame_options.grid(row=2, column=0, columnspan=3, padx=20, pady=10, sticky="ew")
 
         self.var_verbose = ctk.BooleanVar(value=True)
-        self.chk_verbose = ctk.CTkCheckBox(self.frame_options, text="Подробные логи (Verbose)", variable=self.var_verbose)
+        self.chk_verbose = ctk.CTkCheckBox(
+            self.frame_options, text="Подробные логи (Verbose)", variable=self.var_verbose
+        )
         self.chk_verbose.pack(side="left", padx=(0, 20))
 
         self.var_debug = ctk.BooleanVar(value=False)
@@ -75,7 +79,9 @@ class App(ctk.CTk):
         self.chk_debug.pack(side="left")
 
         # === ЗАПУСК ===
-        self.btn_run = ctk.CTkButton(self, text="КОНВЕРТАЦИЯ", height=40, font=("Arial", 14, "bold"), command=self.start_conversion)
+        self.btn_run = ctk.CTkButton(
+            self, text="КОНВЕРТАЦИЯ", height=40, font=("Arial", 14, "bold"), command=self.start_conversion
+        )
         self.btn_run.grid(row=3, column=0, columnspan=3, padx=20, pady=10, sticky="ew")
 
         # === КОНСОЛЬ ЛОГОВ ===
@@ -84,8 +90,7 @@ class App(ctk.CTk):
 
     def browse_input(self):
         filepath = filedialog.askopenfilename(
-            title="Выберите файл Excel",
-            filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")]
+            title="Выберите файл Excel", filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")]
         )
         if filepath:
             self.entry_input.delete(0, "end")
@@ -93,8 +98,7 @@ class App(ctk.CTk):
 
     def browse_config(self):
         filepath = filedialog.askopenfilename(
-            title="Выберите конфигурационный файл",
-            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+            title="Выберите конфигурационный файл", filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
         )
         if filepath:
             self.entry_config.delete(0, "end")
@@ -111,15 +115,13 @@ class App(ctk.CTk):
             return
 
         self.btn_run.configure(state="disabled", text="Выполнение.")
-        
+
         self.log_textbox.configure(state="normal")
         self.log_textbox.delete("1.0", "end")
         self.log_textbox.configure(state="disabled")
 
         thread = threading.Thread(
-            target=self.run_process_thread, 
-            args=(input_path, config_path, is_verbose, is_debug), 
-            daemon=True
+            target=self.run_process_thread, args=(input_path, config_path, is_verbose, is_debug), daemon=True
         )
         thread.start()
 
@@ -128,12 +130,12 @@ class App(ctk.CTk):
         logger = logging.getLogger("GuiLogger")
         level = logging.DEBUG if is_verbose else logging.INFO
         logger.setLevel(level)
-        
+
         if logger.hasHandlers():
             logger.handlers.clear()
-            
+
         handler = TextBoxLogHandler(self.log_textbox, self)
-        formatter = logging.Formatter('%(levelname)s: %(message)s')
+        formatter = logging.Formatter("%(levelname)s: %(message)s")
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
@@ -143,15 +145,18 @@ class App(ctk.CTk):
 
         try:
             convertor.run_conversion(Path(input_path), Path(config_path), logger, is_debug=is_debug)
-            self.after(0, lambda: messagebox.showinfo("Готово", "Конвертация успешно завершена!\nФайлы сохранены в папке с программой."))
-            
+            message = "Конвертация успешно завершена!\nФайлы сохранены в папке с программой"
+            self.after(0, lambda: messagebox.showinfo("Готово", message))
+
         except Exception as e:
             logger.critical(f"Непредвиденная ошибка в процессе конвертации: {e}")
             import traceback
+
             logger.debug(traceback.format_exc())
-            
-            self.after(0, lambda: messagebox.showerror("Ошибка", f"Произошла ошибка при конвертации:\n{e}"))
-            
+
+            error_msg = f"Произошла ошибка при конвертации:\n{e}"
+            self.after(0, lambda: messagebox.showerror("Ошибка", error_msg))
+
         finally:
             self.after(0, lambda: self.btn_run.configure(state="normal", text="КОНВЕРТАЦИЯ"))
 
@@ -162,10 +167,12 @@ class App(ctk.CTk):
         self.log_textbox.configure(state="disabled")
         self.log_textbox.see("end")
 
+
 def run():
     """Точка входа для запуска графического интерфейса."""
     app = App()
     app.mainloop()
+
 
 if __name__ == "__main__":
     run()

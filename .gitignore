@@ -1,7 +1,11 @@
-/.venv
+.venv/
 **/__pycache__
 config.json
 /tmpabs
+.idea
+Конвертор EFKI.docx
+.mypy_cache
 .pytest_cache/
+.ruff_cache
 **.docx
 **.tmp
