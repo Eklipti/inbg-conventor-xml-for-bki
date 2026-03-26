@@ -13,7 +13,13 @@ ctk.set_default_color_theme("blue")
 
 
 class TextBoxLogHandler(logging.Handler):
-    """Обработчик логов, который выводит текст в виджет CustomTkinter."""
+    """
+    Обработчик логов, который перенаправляет текстовый вывод в виджет CustomTkinter.
+
+    Args:
+        textbox (ctk.CTkTextbox): Текстовый виджет для отображения логов.
+        app_instance (ctk.CTk): Экземпляр главного окна для потокобезопасного обновления UI.
+    """
 
     def __init__(self, textbox, app_instance):
         super().__init__()
@@ -21,10 +27,21 @@ class TextBoxLogHandler(logging.Handler):
         self.app_instance = app_instance
 
     def emit(self, record):
+        """
+        Форматирует запись лога и передает её в основной поток для вывода в UI.
+
+        Args:
+            record (logging.LogRecord): Объект записи лога.
+        """
         msg = self.format(record)
         self.app_instance.after(0, self._append_text, msg)
 
     def _append_text(self, msg):
+        """Добавляет текст сообщения в виджет. Должно вызываться только в основном потоке.
+
+        Args:
+            msg (str): Текст сообщения.
+        """
         self.textbox.configure(state="normal")
         self.textbox.insert("end", msg + "\n")
         self.textbox.configure(state="disabled")
@@ -32,6 +49,8 @@ class TextBoxLogHandler(logging.Handler):
 
 
 class App(ctk.CTk):
+    """Главное окно графического интерфейса приложения (GUI)."""
+
     def __init__(self):
         super().__init__()
 
@@ -89,6 +108,7 @@ class App(ctk.CTk):
         self.log_textbox.grid(row=4, column=0, columnspan=3, padx=20, pady=(10, 20), sticky="nsew")
 
     def browse_input(self):
+        """Открывает диалоговое окно для выбора входного Excel-файла."""
         filepath = filedialog.askopenfilename(
             title="Выберите файл Excel", filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")]
         )
@@ -97,6 +117,7 @@ class App(ctk.CTk):
             self.entry_input.insert(0, filepath)
 
     def browse_config(self):
+        """Открывает диалоговое окно для выбора JSON-файла конфигурации."""
         filepath = filedialog.askopenfilename(
             title="Выберите конфигурационный файл", filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
         )
@@ -105,6 +126,11 @@ class App(ctk.CTk):
             self.entry_config.insert(0, filepath)
 
     def start_conversion(self):
+        """Инициирует процесс конвертации из графического интерфейса.
+
+        Проверяет наличие пути к входному файлу, блокирует кнопку запуска,
+        очищает окно логов и запускает процесс конвертации в фоновом потоке.
+        """
         input_path = self.entry_input.get().strip()
         config_path = self.entry_config.get().strip()
         is_verbose = self.var_verbose.get()
@@ -126,6 +152,17 @@ class App(ctk.CTk):
         thread.start()
 
     def run_process_thread(self, input_path, config_path, is_verbose, is_debug):
+        """Выполняет конвертацию файлов в отдельном фоновом потоке.
+
+        Настраивает локальный логгер для вывода в GUI, вызывает логику модуля
+        convertor и обрабатывает возможные ошибки с выводом всплывающих окон.
+
+        Args:
+            input_path (str): Путь к входному Excel-файлу.
+            config_path (str): Путь к JSON-файлу конфигурации.
+            is_verbose (bool): Флаг включения подробных логов.
+            is_debug (bool): Флаг режима отладки.
+        """
         """Функция, которая выполняется в фоновом потоке."""
         logger = logging.getLogger("GuiLogger")
         level = logging.DEBUG if is_verbose else logging.INFO
@@ -161,7 +198,11 @@ class App(ctk.CTk):
             self.after(0, lambda: self.btn_run.configure(state="normal", text="КОНВЕРТАЦИЯ"))
 
     def show_log_message(self, msg):
-        """Быстрый способ вывести сообщение без логгера (например, для проверки полей)."""
+        """Выводит текстовое сообщение напрямую в консоль логов GUI.
+
+        Args:
+            msg (str): Текст сообщения.
+        """
         self.log_textbox.configure(state="normal")
         self.log_textbox.insert("end", msg)
         self.log_textbox.configure(state="disabled")
@@ -169,7 +210,7 @@ class App(ctk.CTk):
 
 
 def run():
-    """Точка входа для запуска графического интерфейса."""
+    """Точка входа для запуска графического интерфейса приложения."""
     app = App()
     app.mainloop()
 

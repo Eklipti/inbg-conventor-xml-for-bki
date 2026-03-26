@@ -7,7 +7,15 @@ import convertor
 
 
 def setup_logger(is_verbose: bool):
-    """Настройка логирования. Если не verbose, то скрываем всё, кроме критических ошибок."""
+    """Настраивает логгер для вывода сообщений в консоль.
+
+    Args:
+        is_verbose (bool): Флаг включения подробного вывода. Если True,
+            устанавливается уровень DEBUG, иначе — CRITICAL.
+
+    Returns:
+        logging.Logger: Настроенный экземпляр логгера "AppLogger".
+    """
     logger = logging.getLogger("AppLogger")
     level = logging.DEBUG if is_verbose else logging.CRITICAL
 
@@ -24,6 +32,12 @@ def setup_logger(is_verbose: bool):
 
 
 def run():
+    """
+    Парсит аргументы командной строки и запускает консольную версию приложения.
+
+    Ожидает параметры входного файла, конфигурации, а также флаги отладки
+    и подробного вывода. После инициализации передает управление модулю convertor.
+    """
     parser = argparse.ArgumentParser(description="Утилита для обработки Excel файлов.")
 
     parser.add_argument("-j", "--json", type=str, default="config.json", help="Путь к конфигурационному файлу JSON")

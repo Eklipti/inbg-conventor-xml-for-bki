@@ -17,7 +17,13 @@ from utils import (
 
 
 def build_source_block(parent_element: ET.Element, config: dict, date_str: str):
-    """Универсальная функция для создания блока Source во всех форматах."""
+    """Формирует блок <Source> (данные об организации) в XML-дереве.
+
+    Args:
+        parent_element (ET.Element): Родительский XML-элемент (<Document>).
+        config (dict): Словарь с конфигурацией (данные об организации).
+        date_str (str): Дата формирования документа в формате YYYY-MM-DD.
+    """
     org = config.get("organization", {})
 
     source_elem = ET.SubElement(parent_element, "Source")
@@ -40,10 +46,18 @@ def build_source_block(parent_element: ET.Element, config: dict, date_str: str):
 
 
 def build_title_block(subject_fl: ET.Element, row: dict):
-    """Универсальная функция для создания блока Title (ФИО, паспорт, рождение)."""
+    """Формирует блок <Title> (титульные данные субъекта) в XML-дереве.
+
+    Заполняет информацию о ФИО, документе удостоверяющем личность и дате/месте
+    рождения на основе переданной строки данных. Автоматически обрабатывает
+    ситуации с отсутствующими паспортными данными.
+
+    Args:
+        subject_fl (ET.Element): Родительский элемент <Subject_FL>.
+        row (dict): Словарь с данными одной записи (строки) из Excel.
+    """
     title = ET.SubElement(subject_fl, "Title")
 
-    # === Блок ФЛ 1 и ФЛ 4 (Имя и Документ) ===
     fl_1_4_group = ET.SubElement(title, "FL_1_4_Group")
 
     fl_1_name = ET.SubElement(fl_1_4_group, "FL_1_Name")
@@ -100,7 +114,21 @@ def build_event(
     event_type: str,
     extra_param: str | None = None,
 ) -> None:
-    """Универсальная сборка события (2.3 или 2.5)."""
+    """Формирует основной XML-блок кредитного события.
+
+    Создает базовые теги события (сделка, суммы, условия) и, в зависимости от
+    переданного типа (2.3, 2.5, 2.11.2), вызывает соответствующие функции-помощники
+    для добавления специфичных подблоков.
+
+    Args:
+        events_elem (ET.Element): Родительский элемент <Events>.
+        row (dict): Словарь с данными одной записи из Excel.
+        date_doc_str (str): Дата формирования документа.
+        bureau (str): Идентификатор целевого БКИ.
+        order_num (int): Порядковый номер события.
+        event_type (str): Тип события (например, '2_3', '2_5', '2_11_2').
+        extra_param (str | None, optional): Дополнительный параметр (например, код закрытия).
+    """
 
     status_raw = row.get("Статус долга (Операция)", "").strip().lower()
 
@@ -159,7 +187,14 @@ def build_event(
 
 
 def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str, event_type: str):
-    """Функция для формирования блоков FL_27 и FL_28."""
+    """Формирует блоки FL_27 (Просроченная задолженность) и FL_28 (Внесенные платежи).
+
+    Args:
+        group_25_28 (ET.Element): Родительский элемент группы 25-28.
+        row (dict): Словарь с данными одной записи из Excel.
+        date_doc_str (str): Дата формирования документа.
+        event_type (str): Тип события для корректировки логики расчета дней просрочки.
+    """
 
     debt_remains = format_sum(row.get("Остаток долга"))
 
@@ -208,7 +243,11 @@ def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str, event_
 
 
 def build_suffix_2_11_2(event_elem: ET.Element):
-    """Формирует блоки FL_8, FL_9, FL_11 и FL_12 для статуса 'add'."""
+    """Добавляет специфичные блоки (адреса, ИП, дееспособность) для события типа 'add' (2.11.2).
+
+    Args:
+        event_elem (ET.Element): Родительский элемент события.
+    """
     fl_8 = ET.SubElement(event_elem, "FL_8_AddrReg")
     ET.SubElement(fl_8, "code").text = "3"
 
@@ -223,7 +262,14 @@ def build_suffix_2_11_2(event_elem: ET.Element):
 
 
 def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str):
-    """Параметры для события 2.3"""
+    """Добавляет специфичные блоки (задолженность, учет) для события типа 'edit' (2.3).
+
+    Args:
+        event_elem (ET.Element): Родительский элемент события.
+        row (dict): Словарь с данными записи.
+        date_doc_str (str): Дата формирования документа.
+        bureau (str): Идентификатор БКИ.
+    """
 
     group_25_28 = ET.SubElement(event_elem, "FL_25_26_27_28_Group")
 
@@ -269,7 +315,15 @@ def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, burea
 
 
 def build_suffix_2_5(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str, extra_param: str | None):
-    """Параметры для события 2.5"""
+    """Добавляет специфичные блоки (завершение договора) для события типа 'close' (2.5).
+
+    Args:
+        event_elem (ET.Element): Родительский элемент события.
+        row (dict): Словарь с данными записи.
+        date_doc_str (str): Дата формирования документа.
+        bureau (str): Идентификатор БКИ.
+        extra_param (str | None): Код завершения договора.
+    """
     group_25_28 = ET.SubElement(event_elem, "FL_25_26_27_28_Group")
 
     last_pay = format_sum(row.get("Сумма последнего возрата", ""))
@@ -298,7 +352,17 @@ def build_suffix_2_5(event_elem: ET.Element, row: dict, date_doc_str: str, burea
 
 
 def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, bureau: str):
-    """Универсальная функция для формирования блока Data со всеми субъектами и событиями."""
+    """Формирует глобальный блок <Data> со всеми субъектами и их событиями.
+
+    Итерируется по распарсенным данным, игнорирует техническую нулевую строку,
+    строит титульные данные и определяет тип события на основе поля статуса долга.
+
+    Args:
+        root (ET.Element): Корневой элемент <Document>.
+        data_dict (dict): Полный словарь распарсенных данных из Excel.
+        date_doc_str (str): Дата формирования документа.
+        bureau (str): Идентификатор целевого БКИ.
+    """
     data_elem = ET.SubElement(root, "Data")
 
     event_counter = 1
@@ -329,7 +393,17 @@ def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, burea
 def finalize_and_save_xml(
     bureau: str, attr: dict, filename: str, data_dict: dict, config: dict, date_doc_str: str, logger: logging.Logger
 ):
-    """Универсальная сборка корневого тега, шапки, данных и сохранение файла."""
+    """Обертка для финальной сборки XML-дерева и его сохранения на диск.
+
+    Args:
+        bureau (str): Идентификатор БКИ.
+        attr (dict): Словарь атрибутов для корневого тега <Document>.
+        filename (str): Имя итогового файла.
+        data_dict (dict): Данные из Excel.
+        config (dict): Конфигурация организации.
+        date_doc_str (str): Дата формирования документа.
+        logger (logging.Logger): Логгер приложения.
+    """
     root = ET.Element("Document", attr)
     build_source_block(root, config, date_doc_str)
     build_data_block(root, data_dict, date_doc_str, bureau=bureau)
@@ -337,6 +411,7 @@ def finalize_and_save_xml(
 
 
 def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger, now: datetime, date_doc_str: str):
+    """Подготавливает атрибуты и генерирует XML-файл в формате для ОКБ."""
     logger.debug("Генерация XML для ОКБ.")
     org = config.get("organization", {})
     okb_conf = config.get("bureaus", {}).get("okb", {})
@@ -365,6 +440,7 @@ def generate_xml_okb(data_dict: dict, config: dict, logger: logging.Logger, now:
 def generate_xml_scoring(
     data_dict: dict, config: dict, logger: logging.Logger, now: datetime, date_doc_str: str, run_counter: int
 ):
+    """Подготавливает атрибуты и генерирует XML-файл в формате для Скоринга."""
     logger.debug("Генерация XML для Скоринга.")
     org = config.get("organization", {})
     subjects_count = str(len(data_dict) - 1)
@@ -391,6 +467,7 @@ def generate_xml_scoring(
 def generate_xml_kbrs(
     data_dict: dict, config: dict, logger: logging.Logger, now: datetime, date_doc_str: str, run_counter: int
 ):
+    """Подготавливает атрибуты и генерирует XML-файл в формате для КБРС."""
     logger.debug("Генерация XML для КБРС.")
     org = config.get("organization", {})
     subjects_count = str(len(data_dict) - 1)
@@ -415,6 +492,7 @@ def generate_xml_kbrs(
 
 
 def generate_xml_nbki(data_dict: dict, config: dict, logger: logging.Logger, now: datetime, date_doc_str: str):
+    """Подготавливает атрибуты и генерирует XML-файл в формате для НБКИ."""
     logger.debug("Генерация XML для НБКИ.")
     org = config.get("organization", {})
     subjects_count = str(len(data_dict) - 1)
@@ -436,6 +514,19 @@ def generate_xml_nbki(data_dict: dict, config: dict, logger: logging.Logger, now
 
 
 def run_conversion(file_path: Path, config_path: Path, logger: logging.Logger, is_debug: bool = False):
+    """Оркестрирует весь процесс конвертации из Excel в XML для разных БКИ.
+
+    Парсит входной файл, загружает конфигурацию и последовательно запускает
+    генерацию XML-файлов для всех поддерживаемых бюро. В зависимости от режима,
+    использует боевой или отладочный счетчик запусков.
+
+    Args:
+        file_path (Path): Путь к исходному Excel-файлу.
+        config_path (Path): Путь к JSON-файлу конфигурации.
+        logger (logging.Logger): Логгер для вывода информации о процессе.
+        is_debug (bool, optional): Флаг режима отладки (использует статичный
+            счетчик и не обновляет конфиг). По умолчанию False.
+    """
     logger.info("Запуск основного процесса конвертации...")
 
     data_dict = excel_parser.parse_active_sheet(file_path, logger)
