@@ -319,7 +319,19 @@ def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, burea
     ET.SubElement(fl_56, "kindCode").text = "99"
     ET.SubElement(fl_56, "uid").text = row.get("Уникальный идентификатор договора (сделки) БАНКА", "")
     ET.SubElement(fl_56, "fundDate").text = format_date(row.get("Дата согласия на обработку ПДН (дата договора)", ""))
-    ET.SubElement(fl_56, "overdueExist_1")
+
+    miss_date = format_date(row.get("Дата создания (дата передачи цессии)", ""))
+    miss_days_str = calculate_days_difference(miss_date, date_doc_str)
+    try:
+        miss_days = int(miss_days_str)
+    except (ValueError, TypeError):
+        miss_days = 0
+
+    if miss_days > 90:
+        ET.SubElement(fl_56, "overdueExist_1")
+    else:
+        ET.SubElement(fl_56, "overdueExist_0")
+
     ET.SubElement(fl_56, "stopExist_0")
 
 def build_suffix_2_5(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str, extra_param: str | None):
