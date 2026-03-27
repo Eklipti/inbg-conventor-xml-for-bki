@@ -82,29 +82,61 @@ class App(ctk.CTk):
         self.btn_browse_config = ctk.CTkButton(self, text="Обзор", width=100, command=self.browse_config)
         self.btn_browse_config.grid(row=1, column=2, padx=(0, 20), pady=5)
 
+        # === ПАПКА СОХРАНЕНИЯ ===
+        self.lbl_output = ctk.CTkLabel(self, text="Папка сохранения:")
+        self.lbl_output.grid(row=2, column=0, padx=20, pady=5, sticky="w")
+
+        self.entry_output = ctk.CTkEntry(self, placeholder_text="По умолчанию: папка с проектом")
+        self.entry_output.grid(row=2, column=1, padx=(0, 20), pady=5, sticky="ew")
+
+        self.btn_browse_output = ctk.CTkButton(self, text="Обзор", width=100, command=self.browse_output)
+        self.btn_browse_output.grid(row=2, column=2, padx=(0, 20), pady=5)
+
+        # === БКИ ===
+        self.frame_bki = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_bki.grid(row=3, column=0, columnspan=3, padx=20, pady=(10, 0), sticky="ew")
+
+        ctk.CTkLabel(self.frame_bki, text="Выбор БКИ:").pack(side="left", padx=(0, 10))
+
+        self.var_okb = ctk.BooleanVar(value=True)
+        self.chk_okb = ctk.CTkCheckBox(self.frame_bki, text="ОКБ", variable=self.var_okb)
+        self.chk_okb.pack(side="left", padx=(0, 10))
+
+        self.var_scoring = ctk.BooleanVar(value=True)
+        self.chk_scoring = ctk.CTkCheckBox(self.frame_bki, text="Скоринг", variable=self.var_scoring)
+        self.chk_scoring.pack(side="left", padx=(0, 10))
+
+        self.var_kbrs = ctk.BooleanVar(value=True)
+        self.chk_kbrs = ctk.CTkCheckBox(self.frame_bki, text="КБРС", variable=self.var_kbrs)
+        self.chk_kbrs.pack(side="left", padx=(0, 10))
+
+        self.var_nbki = ctk.BooleanVar(value=True)
+        self.chk_nbki = ctk.CTkCheckBox(self.frame_bki, text="НБКИ", variable=self.var_nbki)
+        self.chk_nbki.pack(side="left")
+
         # === ОПЦИИ ===
         self.frame_options = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_options.grid(row=2, column=0, columnspan=3, padx=20, pady=10, sticky="ew")
+        self.frame_options.grid(row=4, column=0, columnspan=3, padx=20, pady=10, sticky="ew")
 
-        self.var_verbose = ctk.BooleanVar(value=True)
+        self.var_verbose = ctk.BooleanVar(value=False)
         self.chk_verbose = ctk.CTkCheckBox(
-            self.frame_options, text="Подробные логи (Verbose)", variable=self.var_verbose
+            self.frame_options, text="Подробные логи", variable=self.var_verbose
         )
         self.chk_verbose.pack(side="left", padx=(0, 20))
 
         self.var_debug = ctk.BooleanVar(value=False)
-        self.chk_debug = ctk.CTkCheckBox(self.frame_options, text="Режим отладки (Debug)", variable=self.var_debug)
+        self.chk_debug = ctk.CTkCheckBox(self.frame_options, text="Режим отладки", variable=self.var_debug)
         self.chk_debug.pack(side="left")
 
         # === ЗАПУСК ===
         self.btn_run = ctk.CTkButton(
             self, text="КОНВЕРТАЦИЯ", height=40, font=("Arial", 14, "bold"), command=self.start_conversion
         )
-        self.btn_run.grid(row=3, column=0, columnspan=3, padx=20, pady=10, sticky="ew")
+        self.btn_run.grid(row=5, column=0, columnspan=3, padx=20, pady=10, sticky="ew")
 
         # === КОНСОЛЬ ЛОГОВ ===
         self.log_textbox = ctk.CTkTextbox(self, state="disabled", wrap="word", font=("Consolas", 12))
-        self.log_textbox.grid(row=4, column=0, columnspan=3, padx=20, pady=(10, 20), sticky="nsew")
+        self.log_textbox.grid(row=6, column=0, columnspan=3, padx=20, pady=(10, 20), sticky="nsew")
 
         # Для замены консольного логгера по умолчанию
         logger.remove()
@@ -138,6 +170,13 @@ class App(ctk.CTk):
             self.entry_input.delete(0, "end")
             self.entry_input.insert(0, filepath)
 
+    def browse_output(self):
+        """Открывает диалоговое окно для выбора папки сохранения."""
+        dirpath = filedialog.askdirectory(title="Выберите папку для сохранения")
+        if dirpath:
+            self.entry_output.delete(0, "end")
+            self.entry_output.insert(0, dirpath)
+
     def browse_config(self):
         """Открывает диалоговое окно для выбора JSON-файла конфигурации."""
         filepath = filedialog.askopenfilename(
@@ -155,10 +194,25 @@ class App(ctk.CTk):
         """
         input_path = self.entry_input.get().strip()
         config_path = self.entry_config.get().strip()
+        output_path = self.entry_output.get().strip() or "."
         is_debug = self.var_debug.get()
+
+        bki_list = []
+        if self.var_okb.get():
+            bki_list.append("okb")
+        if self.var_scoring.get():
+            bki_list.append("scoring")
+        if self.var_kbrs.get():
+            bki_list.append("kbrs")
+        if self.var_nbki.get():
+            bki_list.append("nbki")
 
         if not input_path:
             self.show_log_message("ОШИБКА: Пожалуйста, выберите Excel файл для обработки!\n")
+            return
+
+        if not bki_list:
+            self.show_log_message("ОШИБКА: Выберите минимум один БКИ!\n")
             return
 
         self.btn_run.configure(state="disabled", text="Выполнение.")
@@ -168,11 +222,13 @@ class App(ctk.CTk):
         self.log_textbox.configure(state="disabled")
 
         thread = threading.Thread(
-            target=self.run_process_thread, args=(input_path, config_path, is_debug), daemon=True
+            target=self.run_process_thread,
+            args=(input_path, config_path, output_path, bki_list, is_debug),
+            daemon=True
         )
         thread.start()
 
-    def run_process_thread(self, input_path, config_path, is_debug):
+    def run_process_thread(self, input_path, config_path, output_path, bki_list, is_debug):
         """Выполняет конвертацию файлов в отдельном фоновом потоке.
 
         Вызывает логику модуля convertor и обрабатывает возможные ошибки с выводом всплывающих окон.
@@ -186,8 +242,9 @@ class App(ctk.CTk):
             logger.debug("Включен режим отладки.")
 
         try:
-            convertor.run_conversion(Path(input_path), Path(config_path), is_debug=is_debug)
-            message = "Конвертация успешно завершена!\nФайлы сохранены в папке с программой"
+            convertor.run_conversion(Path(input_path), Path(config_path),
+                                     Path(output_path), bki_list, is_debug=is_debug)
+            message = "Конвертация успешно завершена!\nФайлы сохранены."
             self.after(0, lambda: messagebox.showinfo("Готово", message))
 
         except Exception as e:

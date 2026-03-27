@@ -20,6 +20,13 @@ def run():
     parser.add_argument("-j", "--json", type=str, default="config.json", help="Путь к конфигурационному файлу JSON")
     parser.add_argument("-i", "--input", type=str, required=True, help="Путь к файлу xls/xlsx для обработки")
     parser.add_argument("-v", "--verbose", action="store_true", help="Включить подробный вывод логов")
+    parser.add_argument("-o", "--output", type=str, default=".", help="Путь к директории для сохранения файлов")
+    parser.add_argument(
+        "--bki",
+        nargs="*",
+        choices=["okb", "scoring", "kbrs", "nbki"],
+        help="Список БКИ. Если указать флаг без значений (--bki), процесс пройдет без сохранения файлов."
+    )
     parser.add_argument(
         "-d", "--debug", action="store_true", help="Режим отладки: фиксированный номер 1111, конфиг не обновляется"
     )
@@ -33,5 +40,6 @@ def run():
 
     file_path = Path(args.input)
     config_path = Path(args.json)
+    output_dir = Path(args.output)
 
-    convertor.run_conversion(file_path, config_path, is_debug=args.debug)
+    convertor.run_conversion(file_path, config_path, output_dir=output_dir, bki_list=args.bki, is_debug=args.debug)

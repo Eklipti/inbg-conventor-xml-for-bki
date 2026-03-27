@@ -418,7 +418,8 @@ def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, burea
             event_counter += 1
 
 
-def finalize_and_save_xml(bureau: str, attr: dict, filename: str, data_dict: dict, config: dict, date_doc_str: str):
+def finalize_and_save_xml(bureau: str, attr: dict, filename: str, data_dict: dict, config: dict, date_doc_str: str,
+                          output_dir: Path, save_file: bool = True):
     """Обертка для финальной сборки XML-дерева и его сохранения на диск.
 
     Args:
@@ -434,11 +435,24 @@ def finalize_and_save_xml(bureau: str, attr: dict, filename: str, data_dict: dic
     root = ET.Element("Document", attr)
     build_source_block(root, config, date_doc_str)
     build_data_block(root, data_dict, date_doc_str, bureau=bureau)
-    save_xml(root, filename)
 
+    if save_file:
+        save_xml(root, str(output_dir / filename))
+    else:
+        logger.debug(f"Пропуск сохранения файла {filename}.")
 
-def generate_xml_okb(data_dict: dict, config: dict, now: datetime, date_doc_str: str):
-    """Подготавливает атрибуты и генерирует XML-файл в формате для ОКБ."""
+def generate_xml_okb(data_dict: dict, config: dict, now: datetime, date_doc_str: str,
+                     output_dir: Path, save_file: bool = True):
+    """Подготавливает атрибуты и генерирует XML-файл в формате для ОКБ.
+
+    Args:
+        data_dict (dict): Словарь с распарсенными данными.
+        config (dict): Конфигурация организации.
+        now (datetime): Текущие дата и время.
+        date_doc_str (str): Строковое представление даты документа.
+        output_dir (Path): Директория для сохранения файла.
+        save_file (bool, optional): Флаг сохранения файла на диск. По умолчанию True.
+    """
     logger.info("Генерация XML для ОКБ.")
     org = config.get("organization", {})
     okb_conf = config.get("bureaus", {}).get("okb", {})
@@ -461,11 +475,22 @@ def generate_xml_okb(data_dict: dict, config: dict, now: datetime, date_doc_str:
         "regNumberDocInaccept": reg_num,
     }
 
-    finalize_and_save_xml("okb", attr, f"{reg_num}.xml", data_dict, config, date_doc_str)
+    finalize_and_save_xml("okb", attr, f"{reg_num}.xml", data_dict, config, date_doc_str, output_dir, save_file)
 
 
-def generate_xml_scoring(data_dict: dict, config: dict, now: datetime, date_doc_str: str, run_counter: int):
-    """Подготавливает атрибуты и генерирует XML-файл в формате для Скоринга."""
+def generate_xml_scoring(data_dict: dict, config: dict, now: datetime, date_doc_str: str, run_counter: int,
+                         output_dir: Path, save_file: bool = True):
+    """Подготавливает атрибуты и генерирует XML-файл в формате для Скоринга.
+
+    Args:
+        data_dict (dict): Словарь с распарсенными данными.
+        config (dict): Конфигурация организации.
+        now (datetime): Текущие дата и время.
+        date_doc_str (str): Строковое представление даты документа.
+        run_counter (int): Текущий счетчик запусков.
+        output_dir (Path): Директория для сохранения файла.
+        save_file (bool, optional): Флаг сохранения файла на диск. По умолчанию True.
+    """
     logger.info("Генерация XML для Скоринга.")
     org = config.get("organization", {})
     subjects_count = str(len(data_dict) - 1)
@@ -486,11 +511,22 @@ def generate_xml_scoring(data_dict: dict, config: dict, now: datetime, date_doc_
 
     date_file_str = now.strftime("%Y%m%d")
     filename = f"DMH_FCH_{date_file_str}_{reg_num}.xml"
-    finalize_and_save_xml("scoring", attr, filename, data_dict, config, date_doc_str)
+    finalize_and_save_xml("scoring", attr, filename, data_dict, config, date_doc_str, output_dir, save_file)
 
 
-def generate_xml_kbrs(data_dict: dict, config: dict, now: datetime, date_doc_str: str, run_counter: int):
-    """Подготавливает атрибуты и генерирует XML-файл в формате для КБРС."""
+def generate_xml_kbrs(data_dict: dict, config: dict, now: datetime, date_doc_str: str, run_counter: int,
+                      output_dir: Path, save_file: bool = True):
+    """Подготавливает атрибуты и генерирует XML-файл в формате для КБРС.
+
+    Args:
+        data_dict (dict): Словарь с распарсенными данными.
+        config (dict): Конфигурация организации.
+        now (datetime): Текущие дата и время.
+        date_doc_str (str): Строковое представление даты документа.
+        run_counter (int): Текущий счетчик запусков.
+        output_dir (Path): Директория для сохранения файла.
+        save_file (bool, optional): Флаг сохранения файла на диск. По умолчанию True.
+    """
     logger.info("Генерация XML для КБРС.")
     org = config.get("organization", {})
     subjects_count = str(len(data_dict) - 1)
@@ -511,11 +547,22 @@ def generate_xml_kbrs(data_dict: dict, config: dict, now: datetime, date_doc_str
         "regNumberDocInaccept": reg_num,
     }
 
-    finalize_and_save_xml("kbrs", attr, f"{reg_num}.xml", data_dict, config, date_doc_str)
+    finalize_and_save_xml("kbrs", attr, f"{reg_num}.xml", data_dict, config, date_doc_str,
+                          output_dir, save_file)
 
 
-def generate_xml_nbki(data_dict: dict, config: dict, now: datetime, date_doc_str: str):
-    """Подготавливает атрибуты и генерирует XML-файл в формате для НБКИ."""
+def generate_xml_nbki(data_dict: dict, config: dict, now: datetime, date_doc_str: str,
+                      output_dir: Path, save_file: bool = True):
+    """Подготавливает атрибуты и генерирует XML-файл в формате для НБКИ.
+
+    Args:
+        data_dict (dict): Словарь с распарсенными данными.
+        config (dict): Конфигурация организации.
+        now (datetime): Текущие дата и время.
+        date_doc_str (str): Строковое представление даты документа.
+        output_dir (Path): Директория для сохранения файла.
+        save_file (bool, optional): Флаг сохранения файла на диск. По умолчанию True.
+    """
     logger.info("Генерация XML для НБКИ.")
     org = config.get("organization", {})
     subjects_count = str(len(data_dict) - 1)
@@ -533,10 +580,12 @@ def generate_xml_nbki(data_dict: dict, config: dict, now: datetime, date_doc_str
         "regNumberDocInaccept": reg_num,
     }
 
-    finalize_and_save_xml("nbki", attr, f"{reg_num}.xml", data_dict, config, date_doc_str)
+    finalize_and_save_xml("nbki", attr, f"{reg_num}.xml", data_dict, config, date_doc_str,
+                          output_dir, save_file)
 
 
-def run_conversion(file_path: Path, config_path: Path, is_debug: bool = False):
+def run_conversion(file_path: Path, config_path: Path,
+                   output_dir: Path = Path("."), bki_list: list[str] | None = None, is_debug: bool = False):
     """Оркестрирует весь процесс конвертации из Excel в XML для разных БКИ.
 
     Парсит входной файл, загружает конфигурацию и последовательно запускает
@@ -546,6 +595,8 @@ def run_conversion(file_path: Path, config_path: Path, is_debug: bool = False):
     Args:
         file_path (Path): Путь к исходному Excel-файлу.
         config_path (Path): Путь к JSON-файлу конфигурации.
+        output_dir (Path):
+        bki_list (list[str] | None):
         is_debug (bool, optional): Флаг режима отладки (использует статичный
             счетчик и не обновляет конфиг). По умолчанию False.
     """
@@ -570,16 +621,35 @@ def run_conversion(file_path: Path, config_path: Path, is_debug: bool = False):
         run_counter = int(config_data.get("run_counter", 0))
         logger.debug(f"Текущий счётчик: {run_counter}")
 
-    generate_xml_okb(data_dict, config_data, now, date_doc_str)
-    logger.info("Файл для ОКБ сформирован.")
-    generate_xml_scoring(data_dict, config_data, now, date_doc_str, run_counter)
-    logger.info("Файл для Скоринга сформирован.")
-    generate_xml_kbrs(data_dict, config_data, now, date_doc_str, run_counter)
-    logger.info("Файл для КБРС сформирован.")
-    generate_xml_nbki(data_dict, config_data, now, date_doc_str)
-    logger.info("Файл для НБКИ сформирован.")
+    save_files = True
+    if bki_list is None:
+        active_bkis = ["okb", "scoring", "kbrs", "nbki"]
+    elif len(bki_list) == 0:
+        active_bkis = ["okb", "scoring", "kbrs", "nbki"]
+        save_files = False
+    else:
+        active_bkis = bki_list
 
-    if not is_debug:
+    if save_files and not output_dir.exists():
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+    if "okb" in active_bkis:
+        generate_xml_okb(data_dict, config_data, now, date_doc_str, output_dir, save_files)
+        logger.info("Файл для ОКБ сформирован.")
+
+    if "scoring" in active_bkis:
+        generate_xml_scoring(data_dict, config_data, now, date_doc_str, run_counter, output_dir, save_files)
+        logger.info("Файл для Скоринга сформирован.")
+
+    if "kbrs" in active_bkis:
+        generate_xml_kbrs(data_dict, config_data, now, date_doc_str, run_counter, output_dir, save_files)
+        logger.info("Файл для КБРС сформирован.")
+
+    if "nbki" in active_bkis:
+        generate_xml_nbki(data_dict, config_data, now, date_doc_str, output_dir, save_files)
+        logger.info("Файл для НБКИ сформирован.")
+
+    if not is_debug and save_files:
         config_data["run_counter"] = run_counter + 1
         save_config(config_data, config_path)
 
