@@ -89,7 +89,10 @@ def build_title_block(subject_fl: ET.Element, row: dict):
     ET.SubElement(fl_4_doc, "docNum").text = doc_num
     ET.SubElement(fl_4_doc, "issueDate").text = format_date(row.get("Дата выдачи", ""))
     ET.SubElement(fl_4_doc, "docIssuer").text = clean_issuer(row.get("Кем выдан", ""))
-    ET.SubElement(fl_4_doc, "deptCode").text = "000-000"
+
+    dept_code = str(row.get("Код подразделения", "")).strip()
+    ET.SubElement(fl_4_doc, "deptCode").text = dept_code if dept_code else "000-000"
+
     ET.SubElement(fl_4_doc, "foreignerCode").text = "3"
 
     fl_2_5_group = ET.SubElement(title, "FL_2_5_Group")
@@ -564,7 +567,7 @@ def run_conversion(file_path: Path, config_path: Path, is_debug: bool = False):
         logger.debug("Используется тестовый счетчик: 1111")
         run_counter = 1111
     else:
-        run_counter = config_data.get("run_counter")
+        run_counter = int(config_data.get("run_counter", 0))
         logger.debug(f"Текущий счётчик: {run_counter}")
 
     generate_xml_okb(data_dict, config_data, now, date_doc_str)

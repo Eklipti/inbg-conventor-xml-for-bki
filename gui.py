@@ -1,9 +1,9 @@
+import sys
 import threading
 import tkinter.messagebox as messagebox
 from pathlib import Path
 from tkinter import filedialog
 
-import sys
 import customtkinter as ctk
 from loguru import logger
 

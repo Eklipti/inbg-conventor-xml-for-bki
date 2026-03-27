@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from loguru import logger
 
 from utils import (
     calculate_days_difference,
@@ -184,14 +185,19 @@ def test_save_xml_success(mock_write):
 
 
 @patch("utils.ET.ElementTree.write")
-def test_save_xml_exception(mock_write, caplog):
+def test_save_xml_exception(mock_write):
     mock_write.side_effect = Exception("Write error")
     root = ET.Element("root")
 
-    save_xml(root, "test.xml")
+    messages = []
+    handler_id = logger.add(lambda msg: messages.append(msg))
 
-    assert "Ошибка при сохранении test.xml" in caplog.text
+    try:
+        save_xml(root, "test.xml")
 
+        assert any("Ошибка при сохранении test.xml" in msg for msg in messages)
+    finally:
+        logger.remove(handler_id)
 
 # ==========================================
 # Тесты для calculate_days_difference
@@ -247,9 +253,14 @@ def test_save_config_success(tmp_path, valid_config_data):
 
 
 @patch("utils.open")
-def test_save_config_exception(mock_open, valid_config_data, caplog):
+def test_save_config_exception(mock_open, valid_config_data):
     mock_open.side_effect = Exception("File system error")
 
-    save_config(valid_config_data, Path("dummy.json"))
+    messages = []
+    handler_id = logger.add(lambda msg: messages.append(msg))
 
-    assert "Ошибка при перезаписи dummy.json" in caplog.text
+    try:
+        save_config(valid_config_data, Path("dummy.json"))
+        assert any("Ошибка при перезаписи dummy.json" in msg for msg in messages)
+    finally:
+        logger.remove(handler_id)
