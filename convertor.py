@@ -181,7 +181,7 @@ def build_event(
     ET.SubElement(fl_21, "percentPaySum").text = "0.00"
 
     if event_type in ("2_3", "2_11_2"):
-        build_suffix_2_3(event_elem, row, date_doc_str, bureau)
+        build_suffix_2_3(event_elem, row, date_doc_str, bureau, event_type)
     elif event_type == "2_5":
         build_suffix_2_5(event_elem, row, date_doc_str, bureau, extra_param)
 
@@ -264,16 +264,17 @@ def build_suffix_2_11_2(event_elem: ET.Element):
     ET.SubElement(fl_12, "code").text = "1"
 
 
-def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str):
-    """Добавляет специфичные блоки (задолженность, учет) для события типа 'edit' (2.3).
+def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str, event_type: str = "2_3"):
+    """Добавляет специфичные блоки (задолженность, учет) для события типа 'edit' (2.3) и 'add' (2.11.2)..
 
     Args:
         event_elem (ET.Element): Родительский элемент события.
         row (dict): Словарь с данными записи.
         date_doc_str (str): Дата формирования документа.
         bureau (str): Идентификатор БКИ.
+        event_type (str): Тип события для разветвления логики ("2_3" или "2_11_2").
     """
-    logger.trace("Формирование блоков для <FL_2_3>")
+    logger.trace(f"Формирование блоков для <FL_{event_type}> (через build_suffix_2_3)")
 
     group_25_28 = ET.SubElement(event_elem, "FL_25_26_27_28_Group")
 
@@ -299,8 +300,9 @@ def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, burea
 
     build_fl_27_28(group_25_28, row, date_doc_str, "2_3")
 
-    ET.SubElement(ET.SubElement(event_elem, "FL_20_JointDebtors"), "exist_0")
-    ET.SubElement(ET.SubElement(event_elem, "FL_36_1_ProvisionPaymentOffset"), "exist_0")
+    if event_type == "2_3":
+        ET.SubElement(ET.SubElement(event_elem, "FL_20_JointDebtors"), "exist_0")
+        ET.SubElement(ET.SubElement(event_elem, "FL_36_1_ProvisionPaymentOffset"), "exist_0")
 
     fl_54 = ET.SubElement(event_elem, "FL_54_Accounting")
     ET.SubElement(fl_54, "exist_1")
@@ -309,6 +311,9 @@ def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, burea
     ET.SubElement(fl_54, "supportExist_0")
     ET.SubElement(fl_54, "calcDate").text = date_doc_str
 
+    if event_type == "2_11_2":
+        ET.SubElement(ET.SubElement(event_elem, "FL_20_JointDebtors"), "exist_0")
+
     fl_56 = ET.SubElement(event_elem, "FL_56_Participation")
     ET.SubElement(fl_56, "role").text = "1"
     ET.SubElement(fl_56, "kindCode").text = "99"
@@ -316,7 +321,6 @@ def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, burea
     ET.SubElement(fl_56, "fundDate").text = format_date(row.get("Дата согласия на обработку ПДН (дата договора)", ""))
     ET.SubElement(fl_56, "overdueExist_1")
     ET.SubElement(fl_56, "stopExist_0")
-
 
 def build_suffix_2_5(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str, extra_param: str | None):
     """Добавляет специфичные блоки (завершение договора) для события типа 'close' (2.5).
