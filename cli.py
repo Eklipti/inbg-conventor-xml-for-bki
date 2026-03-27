@@ -1,11 +1,10 @@
 import argparse
-import logging
 from pathlib import Path
 
 import convertor
-from logger_config import setup_app_logging
+from loguru import logger
 
-logger = logging.getLogger(__name__)
+from logger_config import setup_app_logging
 
 
 def run():

@@ -1,4 +1,4 @@
-import logging
+from loguru import logger
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
@@ -14,8 +14,6 @@ from utils import (
     save_config,
     save_xml,
 )
-
-logger = logging.getLogger(__name__)
 
 
 def build_source_block(parent_element: ET.Element, config: dict, date_str: str):

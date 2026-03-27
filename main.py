@@ -1,11 +1,12 @@
-import logging
 import sys
+
+from loguru import logger
 
 import cli
 import gui
+import logger_config
 
-logger = logging.getLogger(__name__)
-
+logger_config.setup_app_logging(is_verbose=True)
 
 def main():
     """Главная точка входа в приложение.

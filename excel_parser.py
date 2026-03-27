@@ -1,4 +1,4 @@
-import logging
+from loguru import logger
 import sys
 import warnings
 from datetime import datetime
@@ -10,7 +10,6 @@ import openpyxl
 from utils import convert_xls_to_xlsx
 
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
-logger = logging.getLogger(__name__)
 
 
 def validate_excel(file_path: Path) -> bool:

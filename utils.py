@@ -1,5 +1,5 @@
 import json
-import logging
+from loguru import logger
 import sys
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -8,7 +8,6 @@ from typing import Any
 
 import pandas as pd
 
-logger = logging.getLogger(__name__)
 
 
 def convert_xls_to_xlsx(xls_path: Path) -> Path:

@@ -1,4 +1,4 @@
-import logging
+from loguru import logger
 import threading
 import tkinter.messagebox as messagebox
 from pathlib import Path
@@ -11,10 +11,9 @@ from logger_config import setup_app_logging
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
-logger = logging.getLogger(__name__)
 
 
-class TextBoxLogHandler(logging.Handler):
+class TextBoxLogSink:
     """
     Обработчик логов, который перенаправляет текстовый вывод в виджет CustomTkinter.
 
@@ -24,18 +23,17 @@ class TextBoxLogHandler(logging.Handler):
     """
 
     def __init__(self, textbox, app_instance):
-        super().__init__()
         self.textbox = textbox
         self.app_instance = app_instance
 
-    def emit(self, record):
+    def write(self, message):
         """
         Форматирует запись лога и передает её в основной поток для вывода в UI.
 
         Args:
-            record (logging.LogRecord): Объект записи лога.
+            message (loguru.Message): Объект сообщения лога.
         """
-        msg = self.format(record)
+        msg = str(message)
         self.app_instance.after(0, self._append_text, msg)
 
     def _append_text(self, msg):
@@ -45,10 +43,9 @@ class TextBoxLogHandler(logging.Handler):
             msg (str): Текст сообщения.
         """
         self.textbox.configure(state="normal")
-        self.textbox.insert("end", msg + "\n")
+        self.textbox.insert("end", msg)
         self.textbox.configure(state="disabled")
         self.textbox.see("end")
-
 
 class App(ctk.CTk):
     """Главное окно графического интерфейса приложения (GUI)."""
@@ -168,14 +165,12 @@ class App(ctk.CTk):
         """Функция, которая выполняется в фоновом потоке."""
         setup_app_logging(is_verbose)
 
-        root_logger = logging.getLogger()
-        gui_handler = TextBoxLogHandler(self.log_textbox, self)
+        gui_sink = TextBoxLogSink(self.log_textbox, self)
 
-        formatter = logging.Formatter("%(asctime)s - [%(levelname)s] - [%(module)s] - %(message)s", "%H:%M:%S")
-        gui_handler.setFormatter(formatter)
-        root_logger.addHandler(gui_handler)
-
-        logger = logging.getLogger(__name__)
+        logger.add(
+            gui_sink,
+            format="{time:HH:mm:ss} - [{level}] - [{module}] - {message}"
+        )
 
         if is_debug:
             logger.debug("Включен режим отладки.")
