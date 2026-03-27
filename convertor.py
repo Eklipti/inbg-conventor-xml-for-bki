@@ -238,7 +238,7 @@ def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str, event_
     ET.SubElement(fl_28, "totalOtherSum").text = "0.00"
 
     if last_pay != "0.00":
-        ET.SubElement(fl_28, "date").text = date_doc_str
+        ET.SubElement(fl_28, "date").text = format_date(row.get("Дата последнего возврата", ""))
     ET.SubElement(fl_28, "sizeCode").text = "3"
     ET.SubElement(fl_28, "scheduleCode").text = "3"
     ET.SubElement(fl_28, "lastMissPaySum").text = last_pay
