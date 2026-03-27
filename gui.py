@@ -1,13 +1,13 @@
-from loguru import logger
 import threading
 import tkinter.messagebox as messagebox
 from pathlib import Path
 from tkinter import filedialog
 
+import sys
 import customtkinter as ctk
+from loguru import logger
 
 import convertor
-from logger_config import setup_app_logging
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
@@ -106,6 +106,29 @@ class App(ctk.CTk):
         self.log_textbox = ctk.CTkTextbox(self, state="disabled", wrap="word", font=("Consolas", 12))
         self.log_textbox.grid(row=4, column=0, columnspan=3, padx=20, pady=(10, 20), sticky="nsew")
 
+        # Для замены консольного логгера по умолчанию
+        logger.remove()
+
+        logger.add(
+            sys.stderr,
+            level="ERROR",
+            format="<red>{time:HH:mm:ss} - [{module:^12}] - [{level:^7}] - {message}</red>"
+        )
+
+        def dynamic_gui_filter(record):
+            if self.var_verbose.get():
+                return True
+            return record["level"].no >= 20
+
+        gui_sink = TextBoxLogSink(self.log_textbox, self)
+        logger.add(
+            gui_sink,
+            level="DEBUG",
+            filter=dynamic_gui_filter,
+            colorize=False,
+            format="{time:HH:mm:ss} - [{module:^12}] - [{level:^7}] - {message}",
+        )
+
     def browse_input(self):
         """Открывает диалоговое окно для выбора входного Excel-файла."""
         filepath = filedialog.askopenfilename(
@@ -132,7 +155,6 @@ class App(ctk.CTk):
         """
         input_path = self.entry_input.get().strip()
         config_path = self.entry_config.get().strip()
-        is_verbose = self.var_verbose.get()
         is_debug = self.var_debug.get()
 
         if not input_path:
@@ -146,32 +168,20 @@ class App(ctk.CTk):
         self.log_textbox.configure(state="disabled")
 
         thread = threading.Thread(
-            target=self.run_process_thread, args=(input_path, config_path, is_verbose, is_debug), daemon=True
+            target=self.run_process_thread, args=(input_path, config_path, is_debug), daemon=True
         )
         thread.start()
 
-    def run_process_thread(self, input_path, config_path, is_verbose, is_debug):
+    def run_process_thread(self, input_path, config_path, is_debug):
         """Выполняет конвертацию файлов в отдельном фоновом потоке.
 
-        Настраивает локальный логгер для вывода в GUI, вызывает логику модуля
-        convertor и обрабатывает возможные ошибки с выводом всплывающих окон.
+        Вызывает логику модуля convertor и обрабатывает возможные ошибки с выводом всплывающих окон.
 
         Args:
             input_path (str): Путь к входному Excel-файлу.
             config_path (str): Путь к JSON-файлу конфигурации.
-            is_verbose (bool): Флаг включения подробных логов.
             is_debug (bool): Флаг режима отладки.
         """
-        """Функция, которая выполняется в фоновом потоке."""
-        setup_app_logging(is_verbose)
-
-        gui_sink = TextBoxLogSink(self.log_textbox, self)
-
-        logger.add(
-            gui_sink,
-            format="{time:HH:mm:ss} - [{level}] - [{module}] - {message}"
-        )
-
         if is_debug:
             logger.debug("Включен режим отладки.")
 
@@ -206,6 +216,7 @@ class App(ctk.CTk):
 
 def run():
     """Точка входа для запуска графического интерфейса приложения."""
+    logger.trace("Используется GUI режим.")
     app = App()
     app.mainloop()
 

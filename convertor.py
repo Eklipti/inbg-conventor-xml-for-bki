@@ -1,7 +1,8 @@
-from loguru import logger
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
+
+from loguru import logger
 
 import excel_parser
 from utils import (
@@ -24,6 +25,8 @@ def build_source_block(parent_element: ET.Element, config: dict, date_str: str):
         config (dict): Словарь с конфигурацией (данные об организации).
         date_str (str): Дата формирования документа в формате YYYY-MM-DD.
     """
+    logger.trace("Формирование блока <Source>.")
+
     org = config.get("organization", {})
 
     source_elem = ET.SubElement(parent_element, "Source")
@@ -55,6 +58,8 @@ def build_title_block(subject_fl: ET.Element, row: dict):
         subject_fl (ET.Element): Родительский элемент <Subject_FL>.
         row (dict): Словарь с данными одной записи (строки) из Excel.
     """
+    logger.trace("Формирование блока <Title>.")
+
     title = ET.SubElement(subject_fl, "Title")
 
     fl_1_4_group = ET.SubElement(title, "FL_1_4_Group")
@@ -123,6 +128,7 @@ def build_event(
         event_type (str): Тип события (например, '2_3', '2_5', '2_11_2').
         extra_param (str | None, optional): Дополнительный параметр (например, код закрытия).
     """
+    logger.trace("Формирование событий <FL_Event_*>.")
 
     status_raw = row.get("Статус долга (Операция)", "").strip().lower()
 
@@ -189,6 +195,7 @@ def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str, event_
         date_doc_str (str): Дата формирования документа.
         event_type (str): Тип события для корректировки логики расчета дней просрочки.
     """
+    logger.trace("Формирование блоков <FL_27> и <FL_28>")
 
     debt_remains = format_sum(row.get("Остаток долга"))
 
@@ -242,6 +249,8 @@ def build_suffix_2_11_2(event_elem: ET.Element):
     Args:
         event_elem (ET.Element): Родительский элемент события.
     """
+    logger.trace("Формирование блоков для <FL_2_11_2>")
+
     fl_8 = ET.SubElement(event_elem, "FL_8_AddrReg")
     ET.SubElement(fl_8, "code").text = "3"
 
@@ -264,6 +273,7 @@ def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, burea
         date_doc_str (str): Дата формирования документа.
         bureau (str): Идентификатор БКИ.
     """
+    logger.trace("Формирование блоков для <FL_2_3>")
 
     group_25_28 = ET.SubElement(event_elem, "FL_25_26_27_28_Group")
 
@@ -318,6 +328,8 @@ def build_suffix_2_5(event_elem: ET.Element, row: dict, date_doc_str: str, burea
         bureau (str): Идентификатор БКИ.
         extra_param (str | None): Код завершения договора.
     """
+    logger.trace("Формирование блоков для <FL_2_5>")
+
     group_25_28 = ET.SubElement(event_elem, "FL_25_26_27_28_Group")
 
     last_pay = format_sum(row.get("Сумма последнего возрата", ""))
@@ -357,6 +369,8 @@ def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, burea
         date_doc_str (str): Дата формирования документа.
         bureau (str): Идентификатор целевого БКИ.
     """
+    logger.trace("Формирование блока <Data>")
+
     data_elem = ET.SubElement(root, "Data")
 
     event_counter = 1
@@ -365,6 +379,7 @@ def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, burea
         if key == 0:
             continue
 
+        logger.trace(f"Текущий субъект: {event_counter}")
         subject_fl = ET.SubElement(data_elem, "Subject_FL")
         build_title_block(subject_fl, row)
 
@@ -395,7 +410,7 @@ def finalize_and_save_xml(bureau: str, attr: dict, filename: str, data_dict: dic
         config (dict): Конфигурация организации.
         date_doc_str (str): Дата формирования документа.
     """
-    logger.debug("Сборка XML-дерева и сохранения на диск.")
+    logger.trace("Сборка XML-дерева и сохранения на диск")
 
     root = ET.Element("Document", attr)
     build_source_block(root, config, date_doc_str)
@@ -515,7 +530,7 @@ def run_conversion(file_path: Path, config_path: Path, is_debug: bool = False):
         is_debug (bool, optional): Флаг режима отладки (использует статичный
             счетчик и не обновляет конфиг). По умолчанию False.
     """
-    logger.info("Запуск основного процесса конвертации.")
+    logger.info("Запуск процесса конвертации в XML.")
 
     data_dict = excel_parser.parse_active_sheet(file_path)
 
@@ -525,6 +540,7 @@ def run_conversion(file_path: Path, config_path: Path, is_debug: bool = False):
 
     now = datetime.now()
     date_doc_str = now.strftime("%Y-%m-%d")
+    logger.trace(f"Записывается дата: {date_doc_str}. Время: {now}")
 
     config_data = load_config(config_path)
 
@@ -532,12 +548,17 @@ def run_conversion(file_path: Path, config_path: Path, is_debug: bool = False):
         logger.debug("Используется тестовый счетчик: 1111")
         run_counter = 1111
     else:
-        run_counter = config_data.get("run_counter", 2640)
+        run_counter = config_data.get("run_counter")
+        logger.debug(f"Текущий счётчик: {run_counter}")
 
     generate_xml_okb(data_dict, config_data, now, date_doc_str)
+    logger.info("Файл для ОКБ сформирован.")
     generate_xml_scoring(data_dict, config_data, now, date_doc_str, run_counter)
+    logger.info("Файл для Скоринга сформирован.")
     generate_xml_kbrs(data_dict, config_data, now, date_doc_str, run_counter)
+    logger.info("Файл для КБРС сформирован.")
     generate_xml_nbki(data_dict, config_data, now, date_doc_str)
+    logger.info("Файл для НБКИ сформирован.")
 
     if not is_debug:
         config_data["run_counter"] = run_counter + 1

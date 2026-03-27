@@ -1,4 +1,3 @@
-from loguru import logger
 import sys
 import warnings
 from datetime import datetime
@@ -6,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import openpyxl
+from loguru import logger
 
 from utils import convert_xls_to_xlsx
 
@@ -46,7 +46,7 @@ def validate_excel(file_path: Path) -> bool:
         )
         sys.exit(1)
 
-    logger.info("Валидация файла успешна.")
+    logger.trace("Валидация файла успешна.")
     return True
 
 
@@ -84,7 +84,7 @@ def parse_active_sheet(file_path: Path) -> dict:
         if not validate_excel(actual_file_path):
             return parsed_data
 
-        logger.debug(f"Парсинг данных из файла: {str(actual_file_path)[-10:]}")
+        logger.trace(f"Парсинг данных из файла: {str(actual_file_path)}")
         wb = openpyxl.load_workbook(actual_file_path, data_only=True)
         sheet = wb["Активные"]
 
@@ -128,7 +128,7 @@ def parse_active_sheet(file_path: Path) -> dict:
                 return val.strftime("%d.%m.%Y")
             return str(val).strip()
 
-        logger.debug("Заголовки найдены.")
+        logger.trace("Заголовки найдены.")
 
         for row_idx, row in enumerate(sheet.iter_rows(min_row=3, values_only=True), start=3):
             v33_val = row[col_v33]
@@ -163,7 +163,7 @@ def parse_active_sheet(file_path: Path) -> dict:
                 logger.warning(f"Строка {row_idx}: Не удалось преобразовать '# в33' в число: {v33_val}. Пропущена.")
 
         wb.close()
-        logger.debug(f'Парсинг листа "Активные" завершен. Собрано записей: {len(parsed_data) - 1}')
+        logger.trace(f'Парсинг листа завершен. Собрано записей: {len(parsed_data) - 1}')
 
         return parsed_data
 

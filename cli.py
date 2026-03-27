@@ -1,9 +1,9 @@
 import argparse
 from pathlib import Path
 
-import convertor
 from loguru import logger
 
+import convertor
 from logger_config import setup_app_logging
 
 
@@ -14,6 +14,7 @@ def run():
     Ожидает параметры входного файла, конфигурации, а также флаги отладки
     и подробного вывода. После инициализации передает управление модулю convertor.
     """
+
     parser = argparse.ArgumentParser(description="Утилита для обработки Excel файлов.")
 
     parser.add_argument("-j", "--json", type=str, default="config.json", help="Путь к конфигурационному файлу JSON")
@@ -26,6 +27,7 @@ def run():
     args = parser.parse_args()
     setup_app_logging(args.verbose)
 
+    logger.trace("Используется CLI режим.")
     if args.debug:
         logger.debug("Включен режим отладки.")
 

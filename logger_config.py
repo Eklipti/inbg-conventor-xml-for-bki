@@ -13,5 +13,9 @@ def setup_app_logging(is_verbose: bool = False):
     logger.add(
         sys.stdout,
         level=level,
-        format="{time:YYYY-MM-DD HH:mm:ss} - [{level}] - [{module}] - {message}"
+        colorize=True,
+        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green>"
+               " - <black>[{module:^12}]</black>"
+               " - <level>[{level:^7}]</level>"
+               " - <level>{message}</level>"
     )

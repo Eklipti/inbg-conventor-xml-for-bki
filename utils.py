@@ -1,5 +1,4 @@
 import json
-from loguru import logger
 import sys
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -7,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-
+from loguru import logger
 
 
 def convert_xls_to_xlsx(xls_path: Path) -> Path:
@@ -176,7 +175,6 @@ def save_xml(root_element: ET.Element, filename: str):
 
     try:
         tree.write(filename, encoding="UTF-8", xml_declaration=True)
-        logger.info("Файл успешно сформирован.")
         logger.debug(f"Имя файла: {filename}")
     except Exception as e:
         logger.error(f"Ошибка при сохранении {filename}: {e}")
