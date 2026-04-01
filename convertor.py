@@ -71,16 +71,9 @@ def build_title_block(subject_fl: ET.Element, row: dict):
     if middle_name:
         ET.SubElement(fl_1_name, "middleName").text = middle_name
 
-    country_code = str(row.get("Код страны", "")).strip()
     doc_series = str(row.get("Серия", "")).strip()
     doc_num = str(row.get("Номер", "")).strip()
     doc_code = "21"
-
-    if not country_code:
-        logger.debug('Не найден код страны, замена на "9", серия и номер паспорта замены нулями.')
-        doc_code = "9"
-        doc_series = "00"
-        doc_num = "000000"
 
     fl_4_doc = ET.SubElement(fl_1_4_group, "FL_4_Doc")
     ET.SubElement(fl_4_doc, "countryCode").text = "643"  # Россия
