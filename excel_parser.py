@@ -7,47 +7,9 @@ from typing import Any
 import openpyxl
 from loguru import logger
 
-from utils import convert_xls_to_xlsx
+from utils import convert_xls_to_xlsx, validate_excel
 
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
-
-
-def validate_excel(file_path: Path) -> bool:
-    """Проверяет существование Excel-файла и наличие в нем обязательных листов.
-
-    Функция убеждается, что файл доступен по указанному пути, может быть
-    успешно прочитан и содержит лист с именем "Активные". При критических
-    ошибках чтения (например, битый файл) выполнение программы прерывается.
-
-    Args:
-        file_path (Path): Путь к проверяемому файлу Excel.
-
-    Returns:
-        bool: True, если файл валиден и содержит необходимые листы, иначе False.
-    """
-    if not file_path.exists():
-        logger.error(f"Файл не найден: {file_path}")
-        return False
-
-    try:
-        wb = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
-        sheet_names = wb.sheetnames
-        wb.close()
-    except Exception as e:
-        logger.critical(f"Не удалось прочитать файл. Ошибка: {e}")
-        sys.exit(1)
-
-    required_sheets = {"Активные"}
-    current_sheets = set(sheet_names)
-
-    if not required_sheets.issubset(current_sheets):
-        logger.critical(
-            f"В файле отсутствуют обязательные листы. Ожидалось: {required_sheets}, найдено: {current_sheets}"
-        )
-        sys.exit(1)
-
-    logger.trace("Валидация файла успешна.")
-    return True
 
 
 def parse_active_sheet(file_path: Path) -> dict:
