@@ -259,7 +259,7 @@ def calculate_days_difference(start_date_str: str, end_date_str: str) -> str:
         return ""
 
 
-def format_sum(value) -> str:
+def format_sum_to_str(value) -> str:
     """Приводит денежную сумму к строковому формату с двумя знаками после запятой.
 
     Заменяет запятые на точки при парсинге. Если значение пустое или
