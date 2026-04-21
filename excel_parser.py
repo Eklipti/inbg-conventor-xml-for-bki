@@ -37,7 +37,7 @@ def parse_active_sheet(file_path: Path) -> dict:
         logger.warning("Обнаружен старый формат xls. Конвертация во временный xlsx.")
         temp_xlsx = convert_xls_to_xlsx(actual_file_path)
         if not temp_xlsx:
-            logger.critical("Отмена парсинга из-за ошибки смены формата.")
+            logger.critical("Ошибка смены формата.")
             sys.exit(1)
         actual_file_path = temp_xlsx
         is_temp_file = True
@@ -113,7 +113,7 @@ def parse_active_sheet(file_path: Path) -> dict:
                     else:
                         logger.warning(
                             f"Строка {row_idx}: Значение 'Серия-Номер' ({sn_raw}) не содержит дефис. "
-                            f"Поля оставлены пустыми."
+                            f"Заполнено нулями."
                         )
                 else:
                     logger.warning(f"Строка {row_idx}: Значение 'Серия-Номер' пустое. Заполнено нулями.")
@@ -126,7 +126,7 @@ def parse_active_sheet(file_path: Path) -> dict:
                 logger.warning(f"Строка {row_idx}: Не удалось преобразовать '# в33' в число: {v33_val}. Пропущена.")
 
         wb.close()
-        logger.trace(f"Парсинг листа завершен. Собрано записей: {len(parsed_data) - 1}")
+        logger.success(f"Парсинг листа завершен. Собрано записей: {len(parsed_data) - 1}")
 
         return parsed_data
 
