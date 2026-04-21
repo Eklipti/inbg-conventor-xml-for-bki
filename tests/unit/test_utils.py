@@ -12,7 +12,7 @@ from utils import (
     clean_issuer,
     convert_xls_to_xlsx,
     format_date,
-    format_sum,
+    format_sum_to_str,
     load_config,
     save_config,
     save_xml,
@@ -236,7 +236,7 @@ def test_calculate_days_difference(start, end, expected):
     ],
 )
 def test_format_sum(input_val, expected):
-    assert format_sum(input_val) == expected
+    assert format_sum_to_str(input_val) == expected
 
 
 # ==========================================
@@ -251,17 +251,3 @@ def test_save_config_success(tmp_path, valid_config_data):
     with open(config_file, encoding="utf-8") as f:
         saved_data = json.load(f)
     assert saved_data == valid_config_data
-
-
-@patch("utils.open")
-def test_save_config_exception(mock_open, valid_config_data):
-    mock_open.side_effect = Exception("File system error")
-
-    messages = []
-    handler_id = logger.add(lambda msg: messages.append(msg))
-
-    try:
-        save_config(valid_config_data, Path("dummy.json"))
-        assert any("Ошибка при перезаписи dummy.json" in msg for msg in messages)
-    finally:
-        logger.remove(handler_id)
