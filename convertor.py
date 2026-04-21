@@ -391,7 +391,8 @@ def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, burea
         if key == 0:
             continue
 
-        logger.trace(f"Текущий субъект: {event_counter}")
+        if event_counter % 1000 == 0:
+            logger.trace(f"Текущий субъект: {event_counter}")
         subject_fl = ET.SubElement(data_elem, "Subject_FL")
         build_title_block(subject_fl, row)
 
@@ -431,7 +432,6 @@ def finalize_and_save_xml(
         config (dict): Конфигурация организации.
         date_doc_str (str): Дата формирования документа.
     """
-    logger.trace("Сборка XML-дерева и сохранения на диск")
 
     root = ET.Element("Document", attr)
     build_source_block(root, config, date_doc_str)
@@ -632,7 +632,7 @@ def run_conversion(
 
     now = datetime.now()
     date_doc_str = now.strftime("%Y-%m-%d")
-    logger.trace(f"Записывается дата: {date_doc_str}. Время: {now}")
+    logger.info(f"Записывается дата: {date_doc_str}. Время: {now}")
 
     config_data = load_config(config_path)
 

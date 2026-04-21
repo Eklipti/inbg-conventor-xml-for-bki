@@ -107,13 +107,14 @@ def parse_active_sheet(file_path: Path) -> dict[int, Any]:
                 logger.warning(f"Строка {row_idx}: Не удалось преобразовать '# в33' в число: {v33_val}. Пропущена.")
 
         wb.close()
-        logger.success(f"Парсинг листа завершен. Собрано записей: {len(parsed_data) - 1}")
+        logger.success(f"Парсинг листа завершен.")
+        logger.debug(f"Собрано записей: {len(parsed_data) - 1}")
 
         return parsed_data
 
     finally:
         try:
             file_path.unlink()
-            logger.success(f"Временный файл {file_path.name} удален.")
+            logger.success(f"Временный файл - {file_path.name} - удален.")
         except Exception as e:
             logger.exception(f"Не удалось удалить временный файл {file_path.name}: {e}")

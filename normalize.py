@@ -23,15 +23,10 @@ def process_excel_returns(file_path: str | Path) -> Path | None:
 
     try:
         if path_obj.suffix.lower() == ".xls":
-            logger.info("Обнаружен формат .xls, инициирована конвертация.")
-            # TODO: normalize.py уже делает проверку, должна идти работа уже с готовым временным/исходным файлом, который
-            # TODO: будет предоставлен. excel_parser.py (28-45), conventor.py (624). excel_parser.py вызывать после в conventor.py.
-            # TODO: Поэтому всё же нужно возвращать путь к изменённому файлу при успехи (временный/исходный), иначе None.
             path_obj = convert_xls_to_xlsx(path_obj)
         else:
             logger.debug(f"Файл имеет формат {path_obj.suffix}, конвертация не требуется.")
 
-        logger.info("Запуск валидации Excel-файла.")
         if not validate_excel(path_obj):
             return None
 
@@ -85,14 +80,13 @@ def process_excel_returns(file_path: str | Path) -> Path | None:
                 aggregated_sums[dict_key] = sum_float
                 first_seen_row_idx[dict_key] = row_idx
 
-        logger.info("Обновление сумм в первых найденных строках.")
         for (key, date), total_sum in aggregated_sums.items():
             row_idx = first_seen_row_idx[(key, date)]
             formatted_sum = f"{total_sum:.2f}".replace(".", ",")
             sheet.cell(row=row_idx, column=idx_sum + 1, value=formatted_sum)
 
         workbook.save(path_obj)
-        logger.success(f"Нормализация завершена. Результат сохранен в {path_obj}")
+        logger.success(f"Нормализация успешно завершена.")
 
         return path_obj
 

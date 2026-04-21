@@ -23,7 +23,6 @@ def convert_xls_to_xlsx(xls_path: Path) -> Path:
         Path: Путь к созданному временному файлу .xlsx.
     """
     xlsx_path = xls_path.with_name(f"{xls_path.stem}_temp.xlsx")
-    logger.info(f"Конвертация старого формата {xls_path.name} в {xlsx_path.name}...")
 
     try:
         df_dict = pd.read_excel(xls_path, sheet_name=None, header=None, engine="xlrd")
@@ -32,7 +31,7 @@ def convert_xls_to_xlsx(xls_path: Path) -> Path:
             for sheet_name, df in df_dict.items():
                 df.to_excel(writer, sheet_name=sheet_name, index=False, header=False)
 
-        logger.success("Конвертация успешно завершена.")
+        logger.success("Конвертация xls в xlsx успешно завершена.")
         return xlsx_path
     except Exception as e:
         logger.critical(f"Ошибка при конвертации .xls в .xlsx: {e}")
