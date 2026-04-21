@@ -7,47 +7,30 @@ from typing import Any
 import openpyxl
 from loguru import logger
 
-from utils import convert_xls_to_xlsx, validate_excel
-
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 
 
-def parse_active_sheet(file_path: Path) -> dict:
+def parse_active_sheet(file_path: Path) -> dict[int, Any]:
     """Парсит данные из листа "Активные" переданного Excel-файла.
 
     Считывает заголовки со второй строки и собирает значения по стандартизированному
     списку колонок. Ключом для каждой записи выступает целочисленное значение
     из колонки '# в33'. Колонка 'Серия-Номер' автоматически разделяется на два
-    отдельных поля. Если на вход поступает файл устаревшего формата (.xls),
-    автоматически создается и используется временный файл .xlsx.
+    отдельных поля. Ожидается, что файл уже прошел валидацию и нормализацию.
 
     Args:
-        file_path (Path): Путь к целевому Excel-файлу (.xls или .xlsx).
+        file_path (Path): Путь к нормализованному целевому Excel-файлу (.xlsx).
 
     Returns:
-        dict: Словарь с извлеченными данными. Ключи — ID из колонки '# в33' (int),
+        dict[int, Any]: Словарь с извлеченными данными. Ключи — ID из колонки '# в33' (int),
         значения — словари с данными конкретной строки по стандартным колонкам.
         По умолчанию всегда содержит стартовую запись {0: "null"}.
     """
-    actual_file_path = file_path
-    is_temp_file = False
     parsed_data: dict[int, Any] = {0: "null"}
 
-    if actual_file_path.suffix.lower() == ".xls":
-        logger.warning("Обнаружен старый формат xls. Конвертация во временный xlsx.")
-        temp_xlsx = convert_xls_to_xlsx(actual_file_path)
-        if not temp_xlsx:
-            logger.critical("Ошибка смены формата.")
-            sys.exit(1)
-        actual_file_path = temp_xlsx
-        is_temp_file = True
-
     try:
-        if not validate_excel(actual_file_path):
-            return parsed_data
-
-        logger.trace(f"Парсинг данных из файла: {actual_file_path!s}")
-        wb = openpyxl.load_workbook(actual_file_path, data_only=True)
+        logger.trace(f"Парсинг данных из файла: {file_path!s}")
+        wb = openpyxl.load_workbook(file_path, data_only=True)
         sheet = wb["Активные"]
 
         headers = {}
@@ -82,7 +65,7 @@ def parse_active_sheet(file_path: Path) -> dict:
             "Дата последнего возврата",
         ]
 
-        def get_str_value(row, col_name):
+        def get_str_value(row: tuple[Any, ...], col_name: str) -> str:
             col_idx = headers.get(col_name)
             if col_idx is None or col_idx >= len(row) or row[col_idx] is None:
                 return ""
@@ -90,8 +73,6 @@ def parse_active_sheet(file_path: Path) -> dict:
             if isinstance(val, datetime):
                 return val.strftime("%d.%m.%Y")
             return str(val).strip()
-
-        logger.trace("Заголовки найдены.")
 
         for row_idx, row in enumerate(sheet.iter_rows(min_row=3, values_only=True), start=3):
             v33_val = row[col_v33]
@@ -131,9 +112,8 @@ def parse_active_sheet(file_path: Path) -> dict:
         return parsed_data
 
     finally:
-        if is_temp_file and actual_file_path.exists():
-            try:
-                actual_file_path.unlink()
-                logger.debug(f"Временный файл {actual_file_path.name} удален.")
-            except Exception as e:
-                logger.exception(f"Не удалось удалить временный файл {actual_file_path.name}: {e}")
+        try:
+            file_path.unlink()
+            logger.success(f"Временный файл {file_path.name} удален.")
+        except Exception as e:
+            logger.exception(f"Не удалось удалить временный файл {file_path.name}: {e}")
