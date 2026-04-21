@@ -1,3 +1,4 @@
+import sys
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
@@ -623,10 +624,6 @@ def run_conversion(
     logger.info("Запуск процесса конвертации в XML.")
 
     normalized_file_path = normalize.process_excel_returns(file_path)
-    if not normalized_file_path:
-        logger.warning("Процесс прерван: ошибка при нормализации файла.")
-        return
-
     data_dict = excel_parser.parse_active_sheet(normalized_file_path)
 
     if len(data_dict) <= 1:

@@ -60,7 +60,7 @@ def validate_excel(file_path: Path) -> bool:
         sheet_names = wb.sheetnames
         wb.close()
     except Exception as e:
-        logger.critical(f"Не удалось прочитать файл. Ошибка: {e}")
+        logger.exception(f"Не удалось прочитать файл. Ошибка: {e}")
         return False
 
     required_sheets = {"Активные"}
@@ -127,7 +127,7 @@ def load_config(config_path: Path) -> dict:
         with config_path.open(encoding="utf-8") as f:
             data: dict[str, Any] = json.load(f)
     except Exception as e:
-        logger.critical(f"Ошибка при чтении {config_path}: {e}")
+        logger.exception(f"Ошибка при чтении {config_path}: {e}")
         sys.exit(1)
 
     if not validate_config(data):
@@ -218,7 +218,7 @@ def save_xml(root_element: ET.Element, filename: str):
         logger.success("XML-дерево сохранено успешно.")
         logger.debug(f"Имя файла: {filename}")
     except Exception as e:
-        logger.error(f"Ошибка при сохранении {filename}: {e}")
+        logger.exception(f"Ошибка при сохранении {filename}: {e}")
 
 
 def calculate_days_difference(start_date_str: str, end_date_str: str) -> str:
@@ -296,4 +296,4 @@ def save_config(config_data: dict, config_path: Path):
             json.dump(config_data, f, ensure_ascii=False, indent=4)
         logger.success("Счетчик конфигурационного файла успешно обновлен.")
     except Exception as e:
-        logger.error(f"Ошибка при перезаписи {config_path}: {e}")
+        logger.exception(f"Ошибка при перезаписи {config_path}: {e}")

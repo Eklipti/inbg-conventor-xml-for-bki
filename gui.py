@@ -244,10 +244,7 @@ class App(ctk.CTk):
             self.after(0, lambda: messagebox.showinfo("Готово", message))
 
         except Exception as e:
-            logger.critical(f"Непредвиденная ошибка в процессе конвертации: {e}")
-            import traceback
-
-            logger.debug(traceback.format_exc())
+            logger.exception(f"Непредвиденная ошибка в процессе конвертации: {e}")
 
             error_msg = f"Произошла ошибка при конвертации:\n{e}"
             self.after(0, lambda: messagebox.showerror("Ошибка", error_msg))

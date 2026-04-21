@@ -136,4 +136,4 @@ def parse_active_sheet(file_path: Path) -> dict:
                 actual_file_path.unlink()
                 logger.debug(f"Временный файл {actual_file_path.name} удален.")
             except Exception as e:
-                logger.warning(f"Не удалось удалить временный файл {actual_file_path.name}: {e}")
+                logger.exception(f"Не удалось удалить временный файл {actual_file_path.name}: {e}")

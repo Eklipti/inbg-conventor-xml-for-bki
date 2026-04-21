@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 import openpyxl
@@ -91,10 +92,10 @@ def process_excel_returns(file_path: str | Path) -> Path | None:
             sheet.cell(row=row_idx, column=idx_sum + 1, value=formatted_sum)
 
         workbook.save(path_obj)
-        logger.success(f"Обработка завершена. Результат сохранен в {path_obj}")
+        logger.success(f"Нормализация завершена. Результат сохранен в {path_obj}")
 
         return path_obj
 
     except Exception as e:
-        logger.critical(f"Необработанное исключение в процессе выполнения: {e}")
-        return None
+        logger.exception(f"Необработанное исключение в процессе выполнения: {e}")
+        sys.exit(1)
