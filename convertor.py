@@ -654,19 +654,19 @@ def run_conversion(
 
     if "okb" in active_bkis:
         generate_xml_okb(data_dict, config_data, now, date_doc_str, output_dir, save_files)
-        logger.info("Файл для ОКБ сформирован.")
+        logger.success("Файл для ОКБ сформирован.")
 
     if "scoring" in active_bkis:
         generate_xml_scoring(data_dict, config_data, now, date_doc_str, run_counter, output_dir, save_files)
-        logger.info("Файл для Скоринга сформирован.")
+        logger.success("Файл для Скоринга сформирован.")
 
     if "kbrs" in active_bkis:
         generate_xml_kbrs(data_dict, config_data, now, date_doc_str, run_counter, output_dir, save_files)
-        logger.info("Файл для КБРС сформирован.")
+        logger.success("Файл для КБРС сформирован.")
 
     if "nbki" in active_bkis:
         generate_xml_nbki(data_dict, config_data, now, date_doc_str, output_dir, save_files)
-        logger.info("Файл для НБКИ сформирован.")
+        logger.success("Файл для НБКИ сформирован.")
 
     if not is_debug and save_files:
         config_data["run_counter"] = run_counter + 1
