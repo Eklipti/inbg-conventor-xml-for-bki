@@ -85,7 +85,7 @@ def load_config(config_path: Path) -> dict:
         logger.critical(f"Конфигурационный файл не найден: {config_path}")
         sys.exit(1)
     try:
-        with open(config_path, encoding="utf-8") as f:
+        with config_path.open(encoding="utf-8") as f:
             data: dict[str, Any] = json.load(f)
     except Exception as e:
         logger.critical(f"Ошибка при чтении {config_path}: {e}")
@@ -251,7 +251,7 @@ def save_config(config_data: dict, config_path: Path):
         config_path (Path): Путь к целевому JSON-файлу.
     """
     try:
-        with open(config_path, "w", encoding="utf-8") as f:
+        with config_path.open("w", encoding="utf-8") as f:
             json.dump(config_data, f, ensure_ascii=False, indent=4)
         logger.debug("Конфигурационный файл успешно обновлен (счетчик увеличен).")
     except Exception as e:

@@ -47,6 +47,7 @@ class TextBoxLogSink:
         self.textbox.configure(state="disabled")
         self.textbox.see("end")
 
+
 class App(ctk.CTk):
     """Главное окно графического интерфейса приложения (GUI)."""
 
@@ -119,9 +120,7 @@ class App(ctk.CTk):
         self.frame_options.grid(row=4, column=0, columnspan=3, padx=20, pady=10, sticky="ew")
 
         self.var_verbose = ctk.BooleanVar(value=False)
-        self.chk_verbose = ctk.CTkCheckBox(
-            self.frame_options, text="Подробные логи", variable=self.var_verbose
-        )
+        self.chk_verbose = ctk.CTkCheckBox(self.frame_options, text="Подробные логи", variable=self.var_verbose)
         self.chk_verbose.pack(side="left", padx=(0, 20))
 
         self.var_debug = ctk.BooleanVar(value=False)
@@ -142,9 +141,7 @@ class App(ctk.CTk):
         logger.remove()
 
         logger.add(
-            sys.stderr,
-            level="ERROR",
-            format="<red>{time:HH:mm:ss} - [{module:^12}] - [{level:^7}] - {message}</red>"
+            sys.stderr, level="ERROR", format="<red>{time:HH:mm:ss} - [{module:^12}] - [{level:^7}] - {message}</red>"
         )
 
         def dynamic_gui_filter(record):
@@ -222,9 +219,7 @@ class App(ctk.CTk):
         self.log_textbox.configure(state="disabled")
 
         thread = threading.Thread(
-            target=self.run_process_thread,
-            args=(input_path, config_path, output_path, bki_list, is_debug),
-            daemon=True
+            target=self.run_process_thread, args=(input_path, config_path, output_path, bki_list, is_debug), daemon=True
         )
         thread.start()
 
@@ -242,8 +237,9 @@ class App(ctk.CTk):
             logger.debug("Включен режим отладки.")
 
         try:
-            convertor.run_conversion(Path(input_path), Path(config_path),
-                                     Path(output_path), bki_list, is_debug=is_debug)
+            convertor.run_conversion(
+                Path(input_path), Path(config_path), Path(output_path), bki_list, is_debug=is_debug
+            )
             message = "Конвертация успешно завершена!\nФайлы сохранены."
             self.after(0, lambda: messagebox.showinfo("Готово", message))
 

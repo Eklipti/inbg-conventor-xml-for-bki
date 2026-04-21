@@ -199,6 +199,7 @@ def test_save_xml_exception(mock_write):
     finally:
         logger.remove(handler_id)
 
+
 # ==========================================
 # Тесты для calculate_days_difference
 # ==========================================

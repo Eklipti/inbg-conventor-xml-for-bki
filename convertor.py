@@ -25,7 +25,6 @@ def build_source_block(parent_element: ET.Element, config: dict, date_str: str):
         config (dict): Словарь с конфигурацией (данные об организации).
         date_str (str): Дата формирования документа в формате YYYY-MM-DD.
     """
-    logger.trace("Формирование блока <Source>.")
 
     org = config.get("organization", {})
 
@@ -58,7 +57,6 @@ def build_title_block(subject_fl: ET.Element, row: dict):
         subject_fl (ET.Element): Родительский элемент <Subject_FL>.
         row (dict): Словарь с данными одной записи (строки) из Excel.
     """
-    logger.trace("Формирование блока <Title>.")
 
     title = ET.SubElement(subject_fl, "Title")
 
@@ -124,7 +122,6 @@ def build_event(
         event_type (str): Тип события (например, '2_3', '2_5', '2_11_2').
         extra_param (str | None, optional): Дополнительный параметр (например, код закрытия).
     """
-    logger.trace("Формирование событий <FL_Event_*>.")
 
     status_raw = row.get("Статус долга (Операция)", "").strip().lower()
 
@@ -191,7 +188,6 @@ def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str, event_
         date_doc_str (str): Дата формирования документа.
         event_type (str): Тип события для корректировки логики расчета дней просрочки.
     """
-    logger.trace("Формирование блоков <FL_27> и <FL_28>")
 
     debt_remains = format_sum(row.get("Остаток долга"))
 
@@ -245,7 +241,6 @@ def build_suffix_2_11_2(event_elem: ET.Element):
     Args:
         event_elem (ET.Element): Родительский элемент события.
     """
-    logger.trace("Формирование блоков для <FL_2_11_2>")
 
     fl_8 = ET.SubElement(event_elem, "FL_8_AddrReg")
     ET.SubElement(fl_8, "code").text = "3"
@@ -270,7 +265,6 @@ def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, burea
         bureau (str): Идентификатор БКИ.
         event_type (str): Тип события для разветвления логики ("2_3" или "2_11_2").
     """
-    logger.trace(f"Формирование блоков для <FL_{event_type}> (через build_suffix_2_3)")
 
     group_25_28 = ET.SubElement(event_elem, "FL_25_26_27_28_Group")
 
@@ -330,6 +324,7 @@ def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, burea
 
     ET.SubElement(fl_56, "stopExist_0")
 
+
 def build_suffix_2_5(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str, extra_param: str | None):
     """Добавляет специфичные блоки (завершение договора) для события типа 'close' (2.5).
 
@@ -340,7 +335,6 @@ def build_suffix_2_5(event_elem: ET.Element, row: dict, date_doc_str: str, burea
         bureau (str): Идентификатор БКИ.
         extra_param (str | None): Код завершения договора.
     """
-    logger.trace("Формирование блоков для <FL_2_5>")
 
     group_25_28 = ET.SubElement(event_elem, "FL_25_26_27_28_Group")
 
@@ -386,7 +380,6 @@ def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, burea
         date_doc_str (str): Дата формирования документа.
         bureau (str): Идентификатор целевого БКИ.
     """
-    logger.trace("Формирование блока <Data>")
 
     data_elem = ET.SubElement(root, "Data")
 
@@ -416,8 +409,16 @@ def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, burea
             event_counter += 1
 
 
-def finalize_and_save_xml(bureau: str, attr: dict, filename: str, data_dict: dict, config: dict, date_doc_str: str,
-                          output_dir: Path, save_file: bool = True):
+def finalize_and_save_xml(
+    bureau: str,
+    attr: dict,
+    filename: str,
+    data_dict: dict,
+    config: dict,
+    date_doc_str: str,
+    output_dir: Path,
+    save_file: bool = True,
+):
     """Обертка для финальной сборки XML-дерева и его сохранения на диск.
 
     Args:
@@ -439,8 +440,10 @@ def finalize_and_save_xml(bureau: str, attr: dict, filename: str, data_dict: dic
     else:
         logger.debug(f"Пропуск сохранения файла {filename}.")
 
-def generate_xml_okb(data_dict: dict, config: dict, now: datetime, date_doc_str: str,
-                     output_dir: Path, save_file: bool = True):
+
+def generate_xml_okb(
+    data_dict: dict, config: dict, now: datetime, date_doc_str: str, output_dir: Path, save_file: bool = True
+):
     """Подготавливает атрибуты и генерирует XML-файл в формате для ОКБ.
 
     Args:
@@ -476,8 +479,15 @@ def generate_xml_okb(data_dict: dict, config: dict, now: datetime, date_doc_str:
     finalize_and_save_xml("okb", attr, f"{reg_num}.xml", data_dict, config, date_doc_str, output_dir, save_file)
 
 
-def generate_xml_scoring(data_dict: dict, config: dict, now: datetime, date_doc_str: str, run_counter: int,
-                         output_dir: Path, save_file: bool = True):
+def generate_xml_scoring(
+    data_dict: dict,
+    config: dict,
+    now: datetime,
+    date_doc_str: str,
+    run_counter: int,
+    output_dir: Path,
+    save_file: bool = True,
+):
     """Подготавливает атрибуты и генерирует XML-файл в формате для Скоринга.
 
     Args:
@@ -512,8 +522,15 @@ def generate_xml_scoring(data_dict: dict, config: dict, now: datetime, date_doc_
     finalize_and_save_xml("scoring", attr, filename, data_dict, config, date_doc_str, output_dir, save_file)
 
 
-def generate_xml_kbrs(data_dict: dict, config: dict, now: datetime, date_doc_str: str, run_counter: int,
-                      output_dir: Path, save_file: bool = True):
+def generate_xml_kbrs(
+    data_dict: dict,
+    config: dict,
+    now: datetime,
+    date_doc_str: str,
+    run_counter: int,
+    output_dir: Path,
+    save_file: bool = True,
+):
     """Подготавливает атрибуты и генерирует XML-файл в формате для КБРС.
 
     Args:
@@ -545,12 +562,12 @@ def generate_xml_kbrs(data_dict: dict, config: dict, now: datetime, date_doc_str
         "regNumberDocInaccept": reg_num,
     }
 
-    finalize_and_save_xml("kbrs", attr, f"{reg_num}.xml", data_dict, config, date_doc_str,
-                          output_dir, save_file)
+    finalize_and_save_xml("kbrs", attr, f"{reg_num}.xml", data_dict, config, date_doc_str, output_dir, save_file)
 
 
-def generate_xml_nbki(data_dict: dict, config: dict, now: datetime, date_doc_str: str,
-                      output_dir: Path, save_file: bool = True):
+def generate_xml_nbki(
+    data_dict: dict, config: dict, now: datetime, date_doc_str: str, output_dir: Path, save_file: bool = True
+):
     """Подготавливает атрибуты и генерирует XML-файл в формате для НБКИ.
 
     Args:
@@ -578,12 +595,16 @@ def generate_xml_nbki(data_dict: dict, config: dict, now: datetime, date_doc_str
         "regNumberDocInaccept": reg_num,
     }
 
-    finalize_and_save_xml("nbki", attr, f"{reg_num}.xml", data_dict, config, date_doc_str,
-                          output_dir, save_file)
+    finalize_and_save_xml("nbki", attr, f"{reg_num}.xml", data_dict, config, date_doc_str, output_dir, save_file)
 
 
-def run_conversion(file_path: Path, config_path: Path,
-                   output_dir: Path = Path("."), bki_list: list[str] | None = None, is_debug: bool = False):
+def run_conversion(
+    file_path: Path,
+    config_path: Path,
+    output_dir: Path = Path(),
+    bki_list: list[str] | None = None,
+    is_debug: bool = False,
+):
     """Оркестрирует весь процесс конвертации из Excel в XML для разных БКИ.
 
     Парсит входной файл, загружает конфигурацию и последовательно запускает

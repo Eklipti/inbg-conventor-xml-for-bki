@@ -84,7 +84,7 @@ def parse_active_sheet(file_path: Path) -> dict:
         if not validate_excel(actual_file_path):
             return parsed_data
 
-        logger.trace(f"Парсинг данных из файла: {str(actual_file_path)}")
+        logger.trace(f"Парсинг данных из файла: {actual_file_path!s}")
         wb = openpyxl.load_workbook(actual_file_path, data_only=True)
         sheet = wb["Активные"]
 
@@ -164,7 +164,7 @@ def parse_active_sheet(file_path: Path) -> dict:
                 logger.warning(f"Строка {row_idx}: Не удалось преобразовать '# в33' в число: {v33_val}. Пропущена.")
 
         wb.close()
-        logger.trace(f'Парсинг листа завершен. Собрано записей: {len(parsed_data) - 1}')
+        logger.trace(f"Парсинг листа завершен. Собрано записей: {len(parsed_data) - 1}")
 
         return parsed_data
 

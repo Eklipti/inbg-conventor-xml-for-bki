@@ -14,8 +14,8 @@ def setup_app_logging(is_verbose: bool = False):
         sys.stdout,
         level=level,
         colorize=True,
-        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green>"
-               " - <black>[{module:^12}]</black>"
-               " - <level>[{level:^7}]</level>"
-               " - <level>{message}</level>"
+        format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green>"
+        " - <black>[{module:^12}]</black>"
+        " - <level>[{level:^7}]</level>"
+        " - <level>{message}</level>",
     )
