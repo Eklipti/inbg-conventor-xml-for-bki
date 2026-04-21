@@ -5,6 +5,7 @@ from pathlib import Path
 from loguru import logger
 
 import excel_parser
+import normalize
 from utils import (
     calculate_days_difference,
     clean_fio,
@@ -621,7 +622,12 @@ def run_conversion(
     """
     logger.info("Запуск процесса конвертации в XML.")
 
-    data_dict = excel_parser.parse_active_sheet(file_path)
+    normalized_file_path = normalize.process_excel_returns(file_path)
+    if not normalized_file_path:
+        logger.warning("Процесс прерван: ошибка при нормализации файла.")
+        return
+
+    data_dict = excel_parser.parse_active_sheet(normalized_file_path)
 
     if len(data_dict) <= 1:
         logger.warning("Нет данных для конвертации.")
