@@ -32,7 +32,7 @@ def convert_xls_to_xlsx(xls_path: Path) -> Path:
             for sheet_name, df in df_dict.items():
                 df.to_excel(writer, sheet_name=sheet_name, index=False, header=False)
 
-        logger.info("Конвертация успешно завершена.")
+        logger.success("Конвертация успешно завершена.")
         return xlsx_path
     except Exception as e:
         logger.critical(f"Ошибка при конвертации .xls в .xlsx: {e}")
@@ -43,8 +43,7 @@ def validate_excel(file_path: Path) -> bool:
     """Проверяет существование Excel-файла и наличие в нем обязательных листов.
 
     Функция убеждается, что файл доступен по указанному пути, может быть
-    успешно прочитан и содержит лист с именем "Активные". При критических
-    ошибках чтения (например, битый файл) выполнение программы прерывается.
+    успешно прочитан и содержит лист с именем "Активные".
 
     Args:
         file_path (Path): Путь к проверяемому файлу Excel.
@@ -62,7 +61,7 @@ def validate_excel(file_path: Path) -> bool:
         wb.close()
     except Exception as e:
         logger.critical(f"Не удалось прочитать файл. Ошибка: {e}")
-        sys.exit(1)
+        return False
 
     required_sheets = {"Активные"}
     current_sheets = set(sheet_names)
@@ -71,9 +70,9 @@ def validate_excel(file_path: Path) -> bool:
         logger.critical(
             f"В файле отсутствуют обязательные листы. Ожидалось: {required_sheets}, найдено: {current_sheets}"
         )
-        sys.exit(1)
+        return False
 
-    logger.trace("Валидация файла успешна.")
+    logger.success("Файл валиден и содержит необходимые листы.")
     return True
 
 
@@ -105,6 +104,7 @@ def validate_config(config_data: dict) -> bool:
         logger.critical("Параметр 'run_counter' отсутствует или не является целым числом (int).")
         return False
 
+    logger.success("Структура конфигурации валидна.")
     return True
 
 
@@ -133,6 +133,7 @@ def load_config(config_path: Path) -> dict:
     if not validate_config(data):
         sys.exit(1)
 
+    logger.success("Конфигурация валидна.")
     return data
 
 
@@ -159,7 +160,7 @@ def format_date(date_str: str) -> str:
 
 
 def clean_fio(text: str) -> str:
-    """Очищает строку с ФИО от лишних символов и типичных заглушек.
+    """Очищает строку с ФИО от лишних символов и заглушек.
 
     Убирает нижние подчеркивания, неразрывные пробелы и заменяет
     маркеры отсутствия данных ('NaN', 'None', 'нет', '-') на пустую строку.
@@ -214,6 +215,7 @@ def save_xml(root_element: ET.Element, filename: str):
 
     try:
         tree.write(filename, encoding="UTF-8", xml_declaration=True)
+        logger.success("XML-дерево сохранено успешно.")
         logger.debug(f"Имя файла: {filename}")
     except Exception as e:
         logger.error(f"Ошибка при сохранении {filename}: {e}")
@@ -292,6 +294,6 @@ def save_config(config_data: dict, config_path: Path):
     try:
         with config_path.open("w", encoding="utf-8") as f:
             json.dump(config_data, f, ensure_ascii=False, indent=4)
-        logger.debug("Конфигурационный файл успешно обновлен (счетчик увеличен).")
+        logger.success("Счетчик конфигурационного файла успешно обновлен.")
     except Exception as e:
         logger.error(f"Ошибка при перезаписи {config_path}: {e}")
