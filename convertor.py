@@ -348,7 +348,12 @@ def build_suffix_2_5(event_elem: ET.Element, row: dict, date_doc_str: str, burea
     last_pay_exist_tag = "lastPayExist_0" if last_pay == "0.00" else "lastPayExist_1"
 
     ET.SubElement(group_25_28, last_pay_exist_tag)
-    ET.SubElement(group_25_28, "calcDate").text = format_date(row.get("Дата последнего возврата", ""))
+
+    # По спецификации элемент должен отсутствовать, если ничему не равен
+    calc_date_value = format_date(row.get("Дата последнего возврата", ""))
+    if calc_date_value:
+        ET.SubElement(group_25_28, "calcDate").text = calc_date_value
+
     ET.SubElement(group_25_28, "exist_0")
 
     build_fl_27_28(group_25_28, row, date_doc_str, "2_5")
