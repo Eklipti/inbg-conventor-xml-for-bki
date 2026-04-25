@@ -1,13 +1,19 @@
-import sys
+from __future__ import annotations
+
 import threading
 import tkinter.messagebox as messagebox
 from pathlib import Path
 from tkinter import filedialog
+from typing import TYPE_CHECKING
 
 import customtkinter as ctk
 from loguru import logger
 
 import convertor
+from logger_config import LOG_FORMAT, setup_app_logging
+
+if TYPE_CHECKING:
+    from loguru import Record
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
@@ -119,9 +125,13 @@ class App(ctk.CTk):
         self.frame_options = ctk.CTkFrame(self, fg_color="transparent")
         self.frame_options.grid(row=4, column=0, columnspan=3, padx=20, pady=10, sticky="ew")
 
-        self.var_verbose = ctk.BooleanVar(value=False)
-        self.chk_verbose = ctk.CTkCheckBox(self.frame_options, text="Подробные логи", variable=self.var_verbose)
-        self.chk_verbose.pack(side="left", padx=(0, 20))
+        self.var_log_level = ctk.StringVar(value="INFO")
+        self.cmb_log_level = ctk.CTkOptionMenu(
+            self.frame_options,
+            values=["TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+            variable=self.var_log_level,
+        )
+        self.cmb_log_level.pack(side="left", padx=(0, 20))
 
         self.var_debug = ctk.BooleanVar(value=False)
         self.chk_debug = ctk.CTkCheckBox(self.frame_options, text="Режим отладки", variable=self.var_debug)
@@ -137,25 +147,36 @@ class App(ctk.CTk):
         self.log_textbox = ctk.CTkTextbox(self, state="disabled", wrap="word", font=("Consolas", 12))
         self.log_textbox.grid(row=6, column=0, columnspan=3, padx=20, pady=(10, 20), sticky="nsew")
 
-        # Для замены консольного логгера по умолчанию
-        logger.remove()
+        def dynamic_gui_filter(record: Record) -> bool:
+            """Фильтрует логи для GUI в зависимости от выбранного уровня.
 
-        logger.add(
-            sys.stderr, level="ERROR", format="<red>{time:HH:mm:ss} - [{module:^12}] - [{level:^7}] - {message}</red>"
-        )
+            Args:
+                record (Record): Объект записи лога от loguru.
 
-        def dynamic_gui_filter(record):
-            if self.var_verbose.get():
-                return True
-            return record["level"].no >= 20
+            Returns:
+                bool: True, если лог должен быть отображен, иначе False.
+            """
+            level_map: dict[str, int] = {
+                "TRACE": 5,
+                "DEBUG": 10,
+                "INFO": 20,
+                "WARNING": 30,
+                "ERROR": 40,
+                "CRITICAL": 50,
+            }
+            current_level: str = self.var_log_level.get()
+            min_level: int = level_map.get(current_level, 20)
+
+            log_level_no: int = record["level"].no
+            return bool(log_level_no >= min_level)
 
         gui_sink = TextBoxLogSink(self.log_textbox, self)
         logger.add(
             gui_sink,
-            level="DEBUG",
+            level="TRACE",  # итоговый срез делает фильтр выше
             filter=dynamic_gui_filter,
             colorize=False,
-            format="{time:HH:mm:ss} - [{module:^12}] - [{level:^7}] - {message}",
+            format=LOG_FORMAT,
         )
 
     def browse_input(self):
@@ -205,13 +226,16 @@ class App(ctk.CTk):
             bki_list.append("nbki")
 
         if not input_path:
+            logger.error("Попытка запуска без выбора входного файла")
             self.show_log_message("ОШИБКА: Пожалуйста, выберите Excel файл для обработки!\n")
             return
 
         if not bki_list:
+            logger.error("Попытка запуска без выбора БКИ")
             self.show_log_message("ОШИБКА: Выберите минимум один БКИ!\n")
             return
 
+        logger.info("Отправлена команда на конвертацию.")
         self.btn_run.configure(state="disabled", text="Выполнение.")
 
         self.log_textbox.configure(state="normal")
@@ -233,23 +257,27 @@ class App(ctk.CTk):
             config_path (str): Путь к JSON-файлу конфигурации.
             is_debug (bool): Флаг режима отладки.
         """
+        logger.trace("Фоновый поток конвертации запущен")
         if is_debug:
-            logger.debug("Включен режим отладки.")
+            logger.debug("Включен режим отладки в GUI.")
 
         try:
             convertor.run_conversion(
                 Path(input_path), Path(config_path), Path(output_path), bki_list, is_debug=is_debug
             )
             message = "Конвертация успешно завершена!\nФайлы сохранены."
+            logger.success("Конвертация выполнена успешно")
             self.after(0, lambda: messagebox.showinfo("Готово", message))
 
         except Exception as e:
-            logger.exception(f"Непредвиденная ошибка в процессе конвертации: {e}")
+            logger.critical(f"Критический сбой в потоке конвертации: {e}")
+            logger.exception(e)
 
             error_msg = f"Произошла ошибка при конвертации:\n{e}"
             self.after(0, lambda: messagebox.showerror("Ошибка", error_msg))
 
         finally:
+            logger.trace("Фоновый поток завершил работу")
             self.after(0, lambda: self.btn_run.configure(state="normal", text="КОНВЕРТАЦИЯ"))
 
     def show_log_message(self, msg):
@@ -264,11 +292,16 @@ class App(ctk.CTk):
         self.log_textbox.see("end")
 
 
-def run():
+def run() -> None:
     """Точка входа для запуска графического интерфейса приложения."""
-    logger.trace("Используется GUI режим.")
-    app = App()
-    app.mainloop()
+    setup_app_logging("INFO")
+    logger.trace("Инициализация GUI")
+    try:
+        app = App()
+        logger.debug("Главное окно GUI создано")
+        app.mainloop()
+    except Exception as e:
+        logger.critical(f"Приложение GUI аварийно завершилось: {e}")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,3 @@
-import sys
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
@@ -31,6 +30,8 @@ def build_source_block(parent_element: ET.Element, config: dict, date_str: str):
     org = config.get("organization", {})
 
     source_elem = ET.SubElement(parent_element, "Source")
+    logger.trace(f"Сформирован блок Source для {org.get('shortName', 'Unknown')}")
+
     org_source = ET.SubElement(source_elem, "FL_46_UL_36_OrgSource")
 
     ET.SubElement(org_source, "sourceCode").text = "1"
@@ -124,6 +125,8 @@ def build_event(
         event_type (str): Тип события (например, '2_3', '2_5', '2_11_2').
         extra_param (str | None, optional): Дополнительный параметр (например, код закрытия).
     """
+    uid = row.get("Уникальный идентификатор договора (сделки) БАНКА", "MISSING_UID")
+    logger.trace(f"Начало сборки события {event_type} для договора {uid}")
 
     status_raw = row.get("Статус долга (Операция)", "").strip().lower()
 
@@ -386,13 +389,12 @@ def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, burea
     data_elem = ET.SubElement(root, "Data")
 
     event_counter = 1
-
     for key, row in data_dict.items():
         if key == 0:
             continue
 
-        if event_counter % 1000 == 0:
-            logger.trace(f"Текущий субъект: {event_counter}")
+        logger.trace(f"Обработка записи #{event_counter}")
+
         subject_fl = ET.SubElement(data_elem, "Subject_FL")
         build_title_block(subject_fl, row)
 
@@ -410,6 +412,11 @@ def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, burea
             close_digit = parts[1] if len(parts) > 1 else None
             build_event(events, row, date_doc_str, bureau, event_counter, event_type="2_5", extra_param=close_digit)
             event_counter += 1
+
+        if event_counter % 1000 == 0:
+            logger.debug(f"Обработано субъектов: {event_counter}")
+
+    logger.info(f"Всего обработано субъектов: {event_counter - 1}")
 
 
 def finalize_and_save_xml(
@@ -621,13 +628,17 @@ def run_conversion(
         is_debug (bool, optional): Флаг режима отладки (использует статичный
             счетчик и не обновляет конфиг). По умолчанию False.
     """
-    logger.info("Запуск процесса конвертации в XML.")
+    logger.info(f"Запуск процесса конвертации. Файл: {file_path.name}")
 
-    normalized_file_path = normalize.process_excel_returns(file_path)
-    data_dict = excel_parser.parse_active_sheet(normalized_file_path)
+    try:
+        normalized_file_path = normalize.process_excel_returns(file_path)
+        data_dict = excel_parser.parse_active_sheet(normalized_file_path)
+    except Exception as e:
+        logger.critical(f"Критическая ошибка при чтении Excel: {e}")
+        return
 
     if len(data_dict) <= 1:
-        logger.warning("Нет данных для конвертации.")
+        logger.warning(f"Файл {file_path.name} не содержит данных для обработки.")
         return
 
     now = datetime.now()
@@ -655,24 +666,29 @@ def run_conversion(
     if save_files and not output_dir.exists():
         output_dir.mkdir(parents=True, exist_ok=True)
 
-    if "okb" in active_bkis:
-        generate_xml_okb(data_dict, config_data, now, date_doc_str, output_dir, save_files)
-        logger.success("Файл для ОКБ сформирован.")
+    for bki in active_bkis:
+        try:
+            if bki == "okb":
+                generate_xml_okb(data_dict, config_data, now, date_doc_str, output_dir, save_files)
+                logger.success(f"Бюро {bki.upper()}: Конвертация успешно завершена.")
 
-    if "scoring" in active_bkis:
-        generate_xml_scoring(data_dict, config_data, now, date_doc_str, run_counter, output_dir, save_files)
-        logger.success("Файл для Скоринга сформирован.")
+            if bki == "scoring":
+                generate_xml_scoring(data_dict, config_data, now, date_doc_str, run_counter, output_dir, save_files)
+                logger.success(f"Бюро {bki.upper()}: Конвертация успешно завершена.")
 
-    if "kbrs" in active_bkis:
-        generate_xml_kbrs(data_dict, config_data, now, date_doc_str, run_counter, output_dir, save_files)
-        logger.success("Файл для КБРС сформирован.")
+            if bki == "kbrs":
+                generate_xml_kbrs(data_dict, config_data, now, date_doc_str, run_counter, output_dir, save_files)
+                logger.success(f"Бюро {bki.upper()}: Конвертация успешно завершена.")
 
-    if "nbki" in active_bkis:
-        generate_xml_nbki(data_dict, config_data, now, date_doc_str, output_dir, save_files)
-        logger.success("Файл для НБКИ сформирован.")
+            if bki == "nbki":
+                generate_xml_nbki(data_dict, config_data, now, date_doc_str, output_dir, save_files)
+                logger.success(f"Бюро {bki.upper()}: Конвертация успешно завершена.")
+
+        except Exception as e:
+            logger.error(f"Ошибка при генерации XML для {bki.upper()}: {e}")
+
+    logger.info("Процесс конвертации завершен.")
 
     if not is_debug and save_files:
         config_data["run_counter"] = run_counter + 1
         save_config(config_data, config_path)
-
-    logger.info("Конвертация завершена.")

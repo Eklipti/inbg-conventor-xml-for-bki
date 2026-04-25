@@ -3,7 +3,9 @@ from pathlib import Path
 
 import openpyxl
 from loguru import logger
+
 from utils import convert_xls_to_xlsx, validate_excel
+
 
 def process_excel_returns(file_path: str | Path) -> Path | None:
     """Обрабатывает Excel-файл, суммируя возвраты по ключевому полю и дате.
@@ -20,29 +22,35 @@ def process_excel_returns(file_path: str | Path) -> Path | None:
         Path | None: Путь к обработанному файлу при успехе, иначе None.
     """
     path_obj = Path(file_path)
+    logger.info(f"Запуск обработки файла: {path_obj.name}")
 
     try:
         if path_obj.suffix.lower() == ".xls":
+            logger.trace("Обнаружен формат .xls, запуск конвертации.")
             path_obj = convert_xls_to_xlsx(path_obj)
         else:
             logger.debug(f"Файл имеет формат {path_obj.suffix}, конвертация не требуется.")
 
         if not validate_excel(path_obj):
+            logger.warning(f"Файл {path_obj.name} не прошел валидацию.")
             return None
 
+        logger.debug("Загрузка рабочей книги Excel...")
         workbook = openpyxl.load_workbook(path_obj)
         sheet = workbook["Активные"]
 
         target_headers = ["Ключевое поле", "Сумма последнего возрата", "Дата последнего возврата"]
         header_indices: dict[str, int] = {}
 
+        logger.trace("Поиск индексов заголовков во второй строке")
         for row in sheet.iter_rows(min_row=2, max_row=2):
             for cell in row:
                 if cell.value in target_headers:
                     header_indices[cell.value] = cell.column - 1
 
         if len(header_indices) != len(target_headers):
-            logger.error(f"Не удалось найти все необходимые заголовки. Найдено: {list(header_indices.keys())}")
+            missing = set(target_headers) - set(header_indices.keys())
+            logger.error(f"Не найдены заголовки: {missing}. Найдено: {list(header_indices.keys())}")
             return None
 
         idx_key = header_indices["Ключевое поле"]
@@ -52,6 +60,7 @@ def process_excel_returns(file_path: str | Path) -> Path | None:
         aggregated_sums: dict[tuple[str, str], float] = {}
         first_seen_row_idx: dict[tuple[str, str], int] = {}
 
+        logger.info("Начало итерации по строкам данных.")
         for row_idx, row in enumerate(sheet.iter_rows(min_row=3), start=3):
             cell_key = row[idx_key].value
             cell_sum = row[idx_sum].value
@@ -62,34 +71,40 @@ def process_excel_returns(file_path: str | Path) -> Path | None:
             sum_str = str(cell_sum).strip() if cell_sum is not None else "0"
 
             if not key_val:
+                logger.trace(f"Пропуск пустой строки на позиции {row_idx}.")
                 continue
 
             try:
                 clean_sum = sum_str.replace(" ", "").replace(",", ".")
                 sum_float = float(clean_sum)
             except ValueError:
-                logger.error(f"Невозможно преобразовать сумму '{sum_str}' в число.")
+                logger.error(f"Ошибка в строке {row_idx}: невозможно преобразовать '{sum_str}' в число.")
                 return None
 
             dict_key = (key_val, date_val)
             if dict_key in aggregated_sums:
                 aggregated_sums[dict_key] += sum_float
+                logger.trace(f"Дубликат в строке {row_idx} (ключ: {dict_key}): суммирование и очистка ячеек.")
                 for cell in row:
                     cell.value = None
             else:
                 aggregated_sums[dict_key] = sum_float
                 first_seen_row_idx[dict_key] = row_idx
 
+        logger.debug(f"Агрегация завершена. Уникальных записей: {len(aggregated_sums) - 1}.")
+
         for (key, date), total_sum in aggregated_sums.items():
             row_idx = first_seen_row_idx[(key, date)]
             formatted_sum = f"{total_sum:.2f}".replace(".", ",")
             sheet.cell(row=row_idx, column=idx_sum + 1, value=formatted_sum)
 
+        logger.debug(f"Сохранение изменений в файл {path_obj}...")
         workbook.save(path_obj)
-        logger.success(f"Нормализация успешно завершена.")
+        logger.success("Нормализация успешно завершена.")
 
         return path_obj
 
     except Exception as e:
-        logger.exception(f"Необработанное исключение в процессе выполнения: {e}")
+        logger.critical(f"Критический сбой при обработке файла: {e}")
+        logger.exception("Стек вызовов:")
         sys.exit(1)

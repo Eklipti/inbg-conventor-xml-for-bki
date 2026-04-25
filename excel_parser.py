@@ -29,19 +29,22 @@ def parse_active_sheet(file_path: Path) -> dict[int, Any]:
     parsed_data: dict[int, Any] = {0: "null"}
 
     try:
-        logger.trace(f"Парсинг данных из файла: {file_path!s}")
+        logger.info(f"Начало обработки файла: {file_path.name}")
+        logger.trace(f"Полный путь к файлу: {file_path!s}")
+
         wb = openpyxl.load_workbook(file_path, data_only=True)
         sheet = wb["Активные"]
+        logger.debug("Книга загружена, лист 'Активные' найден")
 
         headers = {}
         for cell in sheet[2]:
             if cell.value:
                 headers[str(cell.value).strip()] = cell.column - 1
+        logger.debug(f"Заголовки проиндексированы: {list(headers.keys())}")
 
         col_v33 = headers.get("# в33")
-
         if col_v33 is None:
-            logger.critical('На второй строке не найден столбец "# в33".')
+            logger.critical('Критическая ошибка: отсутствует обязательный столбец "# в33".')
             wb.close()
             sys.exit(1)
 
@@ -68,8 +71,12 @@ def parse_active_sheet(file_path: Path) -> dict[int, Any]:
         def get_str_value(row: tuple[Any, ...], col_name: str) -> str:
             col_idx = headers.get(col_name)
             if col_idx is None or col_idx >= len(row) or row[col_idx] is None:
+                logger.trace(f"Столбец '{col_name}' не найден или пуст в текущей строке")
                 return ""
+
             val = row[col_idx]
+            logger.trace(f"Извлечено значение из '{col_name}': {val}")
+
             if isinstance(val, datetime):
                 return val.strftime("%d.%m.%Y")
             return str(val).strip()
@@ -77,6 +84,7 @@ def parse_active_sheet(file_path: Path) -> dict[int, Any]:
         for row_idx, row in enumerate(sheet.iter_rows(min_row=3, values_only=True), start=3):
             v33_val = row[col_v33]
             if v33_val is None:
+                logger.trace(f"Строка {row_idx}: пропущена (пустой '# в33')")
                 continue
             try:
                 key = int(v33_val)
@@ -93,8 +101,7 @@ def parse_active_sheet(file_path: Path) -> dict[int, Any]:
                         nomer = parts[1].strip()
                     else:
                         logger.warning(
-                            f"Строка {row_idx}: Значение 'Серия-Номер' ({sn_raw}) не содержит дефис. "
-                            f"Заполнено нулями."
+                            f"Строка {row_idx}: Значение 'Серия-Номер' ({sn_raw}) не содержит дефис. Заполнено нулями."
                         )
                 else:
                     logger.warning(f"Строка {row_idx}: Значение 'Серия-Номер' пустое. Заполнено нулями.")
@@ -103,18 +110,22 @@ def parse_active_sheet(file_path: Path) -> dict[int, Any]:
                 row_data["Номер"] = nomer
 
                 parsed_data[key] = row_data
+                logger.trace(f"Строка {row_idx} (ID: {key}) успешно обработана")
             except ValueError:
-                logger.warning(f"Строка {row_idx}: Не удалось преобразовать '# в33' в число: {v33_val}. Пропущена.")
+                logger.warning(f"Строка {row_idx}: ошибка типа данных '# в33' ({v33_val})")
 
         wb.close()
-        logger.success(f"Парсинг листа завершен.")
-        logger.debug(f"Собрано записей: {len(parsed_data) - 1}")
-
+        logger.success(f"Парсинг листа завершен. Итого записей: {len(parsed_data)}")
         return parsed_data
+
+    except Exception as e:
+        logger.critical(f"Непредвиденная ошибка при парсинге: {e}")
+        raise
 
     finally:
         try:
             file_path.unlink()
             logger.success(f"Временный файл - {file_path.name} - удален.")
         except Exception as e:
-            logger.exception(f"Не удалось удалить временный файл {file_path.name}: {e}")
+            logger.error("Не удалось удалить временный файл.")
+            logger.exception(e)

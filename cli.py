@@ -19,7 +19,14 @@ def run():
 
     parser.add_argument("-j", "--json", type=str, default="config.json", help="Путь к конфигурационному файлу JSON")
     parser.add_argument("-i", "--input", type=str, required=True, help="Путь к файлу xls/xlsx для обработки")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Включить подробный вывод логов")
+    parser.add_argument(
+        "-l",
+        "--log-level",
+        type=str,
+        choices=["TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="INFO",
+        help="Уровень логирования (по умолчанию INFO)",
+    )
     parser.add_argument("-o", "--output", type=str, default=".", help="Путь к директории для сохранения файлов")
     parser.add_argument(
         "--bki",
@@ -32,7 +39,7 @@ def run():
     )
 
     args = parser.parse_args()
-    setup_app_logging(args.verbose)
+    setup_app_logging(args.log_level)
 
     logger.trace("Используется CLI режим.")
     if args.debug:
@@ -42,4 +49,8 @@ def run():
     config_path = Path(args.json)
     output_dir = Path(args.output)
 
-    convertor.run_conversion(file_path, config_path, output_dir=output_dir, bki_list=args.bki, is_debug=args.debug)
+    try:
+        convertor.run_conversion(file_path, config_path, output_dir=output_dir, bki_list=args.bki, is_debug=args.debug)
+        logger.success(f"Конвертация завершена. Результаты в: {output_dir.absolute()}")
+    except Exception as e:
+        logger.error(f"Ошибка в процессе конвертации: {e}")
