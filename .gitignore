@@ -9,6 +9,7 @@ config.json
 /tmpabs
 Конвертор EFKI.docx
 **.docx
+tests/
 
 .mypy_cache
 .pytest_cache/
