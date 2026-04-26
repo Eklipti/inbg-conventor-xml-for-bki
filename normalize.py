@@ -22,11 +22,10 @@ def process_excel_returns(file_path: str | Path) -> Path | None:
         Path | None: Путь к обработанному файлу при успехе, иначе None.
     """
     path_obj = Path(file_path)
-    logger.info(f"Запуск обработки файла: {path_obj.name}")
 
     try:
         if path_obj.suffix.lower() == ".xls":
-            logger.trace("Обнаружен формат .xls, запуск конвертации.")
+            logger.info("Обнаружен формат .xls, запуск конвертации в .xlsx.")
             path_obj = convert_xls_to_xlsx(path_obj)
         else:
             logger.debug(f"Файл имеет формат {path_obj.suffix}, конвертация не требуется.")
@@ -35,14 +34,21 @@ def process_excel_returns(file_path: str | Path) -> Path | None:
             logger.warning(f"Файл {path_obj.name} не прошел валидацию.")
             return None
 
-        logger.debug("Загрузка рабочей книги Excel...")
+        logger.debug("Загрузка рабочей книги Excel.")
         workbook = openpyxl.load_workbook(path_obj)
         sheet = workbook["Активные"]
 
-        target_headers = ["Ключевое поле", "Сумма последнего возрата", "Дата последнего возврата"]
+        target_headers: list[str] = [
+            "Ключевое поле",
+            "Сумма последнего возрата",
+            "Дата последнего возврата",
+            "Остаток долга",
+            "Статус долга (Операция)",
+            "Перевозврат",
+        ]
         header_indices: dict[str, int] = {}
 
-        logger.trace("Поиск индексов заголовков во второй строке")
+        logger.trace("Поиск индексов заголовков во второй строке.")
         for row in sheet.iter_rows(min_row=2, max_row=2):
             for cell in row:
                 if cell.value in target_headers:
@@ -54,13 +60,17 @@ def process_excel_returns(file_path: str | Path) -> Path | None:
             return None
 
         idx_key = header_indices["Ключевое поле"]
-        idx_sum = header_indices["Сумма последнего возрата"]
+        idx_sum: int = header_indices["Сумма последнего возрата"]
         idx_date = header_indices["Дата последнего возврата"]
+        idx_debt: int = header_indices["Остаток долга"]
+        idx_status: int = header_indices["Статус долга (Операция)"]
+        idx_overpayment: int = header_indices["Перевозврат"]
 
         aggregated_sums: dict[tuple[str, str], float] = {}
         first_seen_row_idx: dict[tuple[str, str], int] = {}
 
         logger.info("Начало итерации по строкам данных.")
+        total_rows_processed = 0
         for row_idx, row in enumerate(sheet.iter_rows(min_row=3), start=3):
             cell_key = row[idx_key].value
             cell_sum = row[idx_sum].value
@@ -84,21 +94,60 @@ def process_excel_returns(file_path: str | Path) -> Path | None:
             dict_key = (key_val, date_val)
             if dict_key in aggregated_sums:
                 aggregated_sums[dict_key] += sum_float
-                logger.trace(f"Дубликат в строке {row_idx} (ключ: {dict_key}): суммирование и очистка ячеек.")
+                logger.trace(f"Дубликат в строке {row_idx} ({dict_key}): суммирование и очистка ячеек.")
                 for cell in row:
                     cell.value = None
             else:
                 aggregated_sums[dict_key] = sum_float
                 first_seen_row_idx[dict_key] = row_idx
+            total_rows_processed += 1
 
-        logger.debug(f"Агрегация завершена. Уникальных записей: {len(aggregated_sums) - 1}.")
+        logger.debug(
+            f"Агрегация завершена. "
+            f"Всего строк обработано: {total_rows_processed}. "
+            f"Уникальных записей (осталось): {len(aggregated_sums)}."
+        )
 
+        logger.info("Начало записи агрегированных сумм и пересчета остатка долга.")
         for (key, date), total_sum in aggregated_sums.items():
             row_idx = first_seen_row_idx[(key, date)]
-            formatted_sum = f"{total_sum:.2f}".replace(".", ",")
+
+            formatted_sum: str = f"{total_sum:.2f}".replace(".", ",")
             sheet.cell(row=row_idx, column=idx_sum + 1, value=formatted_sum)
 
-        logger.debug(f"Сохранение изменений в файл {path_obj}...")
+            raw_debt = sheet.cell(row=row_idx, column=idx_debt + 1).value
+            debt_str: str = str(raw_debt).strip() if raw_debt is not None else "0"
+
+            try:
+                clean_debt: str = debt_str.replace(" ", "").replace(",", ".")
+                current_debt: float = float(clean_debt)
+            except ValueError:
+                logger.error(f"Ошибка в строке {row_idx}: невозможно преобразовать остаток долга '{debt_str}' в число.")
+                return None
+
+            new_debt: float = current_debt - total_sum
+
+            if new_debt == 0:
+                logger.trace(f"Строка {row_idx}: Долг полностью погашен (в ноль).")
+                sheet.cell(row=row_idx, column=idx_status + 1, value="close")
+
+                formatted_new_debt = f"{new_debt:.2f}".replace(".", ",")
+                sheet.cell(row=row_idx, column=idx_debt + 1, value=formatted_new_debt)
+
+            elif new_debt < 0:
+                logger.trace(f"Строка {row_idx}: Долг закрыт, есть перевозврат: {new_debt}.")
+                sheet.cell(row=row_idx, column=idx_status + 1, value="close")
+
+                formatted_overpayment: str = f"{new_debt:.2f}".replace(".", ",")
+                sheet.cell(row=row_idx, column=idx_overpayment + 1, value=formatted_overpayment)
+                sheet.cell(row=row_idx, column=idx_debt + 1, value="0,00")
+
+            else:
+                logger.trace(f"Строка {row_idx}: Обновлен остаток долга: {new_debt}.")
+                formatted_new_debt = f"{new_debt:.2f}".replace(".", ",")
+                sheet.cell(row=row_idx, column=idx_debt + 1, value=formatted_new_debt)
+
+        logger.debug(f"Сохранение изменений в файл: {path_obj.name}")
         workbook.save(path_obj)
         logger.success("Нормализация успешно завершена.")
 

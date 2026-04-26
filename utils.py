@@ -31,7 +31,7 @@ def convert_xls_to_xlsx(xls_path: Path) -> Path:
             for sheet_name, df in df_dict.items():
                 df.to_excel(writer, sheet_name=sheet_name, index=False, header=False)
 
-        logger.success("Конвертация xls в xlsx успешно завершена.")
+        logger.success("Конвертация успешно завершена.")
         return xlsx_path
     except Exception as e:
         logger.critical(f"Ошибка при конвертации .xls в .xlsx: {e}")
@@ -214,7 +214,7 @@ def save_xml(root_element: ET.Element, filename: str):
 
     try:
         tree.write(filename, encoding="UTF-8", xml_declaration=True)
-        logger.success(f"XML-дерево сохранено успешно. Имя файла: {filename}")
+        logger.debug(f"XML-дерево сохранено успешно. Имя файла: {filename}")
     except Exception as e:
         logger.exception(f"Ошибка при сохранении {filename}: {e}")
 

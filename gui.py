@@ -266,7 +266,6 @@ class App(ctk.CTk):
                 Path(input_path), Path(config_path), Path(output_path), bki_list, is_debug=is_debug
             )
             message = "Конвертация успешно завершена!\nФайлы сохранены."
-            logger.success("Конвертация выполнена успешно")
             self.after(0, lambda: messagebox.showinfo("Готово", message))
 
         except Exception as e:

@@ -30,17 +30,21 @@ def parse_active_sheet(file_path: Path) -> dict[int, Any]:
 
     try:
         logger.info(f"Начало обработки файла: {file_path.name}")
-        logger.trace(f"Полный путь к файлу: {file_path!s}")
 
         wb = openpyxl.load_workbook(file_path, data_only=True)
         sheet = wb["Активные"]
-        logger.debug("Книга загружена, лист 'Активные' найден")
+        logger.trace("Книга загружена, лист 'Активные' найден")
 
         headers = {}
         for cell in sheet[2]:
             if cell.value:
                 headers[str(cell.value).strip()] = cell.column - 1
-        logger.debug(f"Заголовки проиндексированы: {list(headers.keys())}")
+
+        headers_keys = list(headers.keys())
+        headers_limit = 5
+        headers_display_keys = headers_keys[:headers_limit]
+        suffix = f"... и еще {len(headers_keys) - headers_limit}" if len(headers_keys) > headers_limit else ""
+        logger.trace(f"Заголовки: {headers_display_keys}{suffix}.")
 
         col_v33 = headers.get("# в33")
         if col_v33 is None:
@@ -71,11 +75,9 @@ def parse_active_sheet(file_path: Path) -> dict[int, Any]:
         def get_str_value(row: tuple[Any, ...], col_name: str) -> str:
             col_idx = headers.get(col_name)
             if col_idx is None or col_idx >= len(row) or row[col_idx] is None:
-                logger.trace(f"Столбец '{col_name}' не найден или пуст в текущей строке")
                 return ""
 
             val = row[col_idx]
-            logger.trace(f"Извлечено значение из '{col_name}': {val}")
 
             if isinstance(val, datetime):
                 return val.strftime("%d.%m.%Y")
@@ -110,22 +112,21 @@ def parse_active_sheet(file_path: Path) -> dict[int, Any]:
                 row_data["Номер"] = nomer
 
                 parsed_data[key] = row_data
-                logger.trace(f"Строка {row_idx} (ID: {key}) успешно обработана")
             except ValueError:
                 logger.warning(f"Строка {row_idx}: ошибка типа данных '# в33' ({v33_val})")
 
         wb.close()
-        logger.success(f"Парсинг листа завершен. Итого записей: {len(parsed_data)}")
+        logger.success(f"Парсинг листа завершен. Итого записей: {len(parsed_data) - 1}")
         return parsed_data
 
     except Exception as e:
         logger.critical(f"Непредвиденная ошибка при парсинге: {e}")
         raise
 
-    finally:
-        try:
-            file_path.unlink()
-            logger.success(f"Временный файл - {file_path.name} - удален.")
-        except Exception as e:
-            logger.error("Не удалось удалить временный файл.")
-            logger.exception(e)
+    # finally:
+    #     try:
+    #         file_path.unlink()
+    #         logger.success(f"Временный файл - {file_path.name} - удален.")
+    #     except Exception as e:
+    #         logger.error("Не удалось удалить временный файл.")
+    #         logger.exception(e)

@@ -30,7 +30,6 @@ def build_source_block(parent_element: ET.Element, config: dict, date_str: str):
     org = config.get("organization", {})
 
     source_elem = ET.SubElement(parent_element, "Source")
-    logger.trace(f"Сформирован блок Source для {org.get('shortName', 'Unknown')}")
 
     org_source = ET.SubElement(source_elem, "FL_46_UL_36_OrgSource")
 
@@ -125,8 +124,7 @@ def build_event(
         event_type (str): Тип события (например, '2_3', '2_5', '2_11_2').
         extra_param (str | None, optional): Дополнительный параметр (например, код закрытия).
     """
-    uid = row.get("Уникальный идентификатор договора (сделки) БАНКА", "MISSING_UID")
-    logger.trace(f"Начало сборки события {event_type} для договора {uid}")
+    row.get("Уникальный идентификатор договора (сделки) БАНКА", "MISSING_UID")
 
     status_raw = row.get("Статус долга (Операция)", "").strip().lower()
 
@@ -393,7 +391,8 @@ def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, burea
         if key == 0:
             continue
 
-        logger.trace(f"Обработка записи #{event_counter}")
+        if key % 428 == 0:
+            logger.debug(f"Обработка записи #{event_counter}")
 
         subject_fl = ET.SubElement(data_elem, "Subject_FL")
         build_title_block(subject_fl, row)
@@ -412,9 +411,6 @@ def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, burea
             close_digit = parts[1] if len(parts) > 1 else None
             build_event(events, row, date_doc_str, bureau, event_counter, event_type="2_5", extra_param=close_digit)
             event_counter += 1
-
-        if event_counter % 1000 == 0:
-            logger.debug(f"Обработано субъектов: {event_counter}")
 
     logger.info(f"Всего обработано субъектов: {event_counter - 1}")
 
@@ -628,7 +624,16 @@ def run_conversion(
         is_debug (bool, optional): Флаг режима отладки (использует статичный
             счетчик и не обновляет конфиг). По умолчанию False.
     """
-    logger.info(f"Запуск процесса конвертации. Файл: {file_path.name}")
+    config_data = load_config(config_path)
+
+    if is_debug:
+        logger.debug("Используется тестовый счетчик: 1111")
+        run_counter = 1111
+    else:
+        run_counter = int(config_data.get("run_counter", 0))
+        logger.debug(f"Текущий счётчик: {run_counter}")
+
+    logger.info(f"Запуск процесса конвертации. Файл: {file_path}")
 
     try:
         normalized_file_path = normalize.process_excel_returns(file_path)
@@ -644,15 +649,6 @@ def run_conversion(
     now = datetime.now()
     date_doc_str = now.strftime("%Y-%m-%d")
     logger.info(f"Записывается дата: {date_doc_str}. Время: {now}")
-
-    config_data = load_config(config_path)
-
-    if is_debug:
-        logger.debug("Используется тестовый счетчик: 1111")
-        run_counter = 1111
-    else:
-        run_counter = int(config_data.get("run_counter", 0))
-        logger.debug(f"Текущий счётчик: {run_counter}")
 
     save_files = True
     if bki_list is None:

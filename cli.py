@@ -51,6 +51,5 @@ def run():
 
     try:
         convertor.run_conversion(file_path, config_path, output_dir=output_dir, bki_list=args.bki, is_debug=args.debug)
-        logger.success(f"Конвертация завершена. Результаты в: {output_dir.absolute()}")
     except Exception as e:
         logger.error(f"Ошибка в процессе конвертации: {e}")
