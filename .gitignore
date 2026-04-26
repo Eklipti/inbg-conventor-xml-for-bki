@@ -10,6 +10,7 @@ config.json
 Конвертор EFKI.docx
 **.docx
 tests/
+utils_docgen.py
 
 .mypy_cache
 .pytest_cache/
