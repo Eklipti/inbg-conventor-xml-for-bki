@@ -78,30 +78,40 @@ class App(ctk.CTk):
         self.btn_browse_input = ctk.CTkButton(self, text="Обзор", width=100, command=self.browse_input)
         self.btn_browse_input.grid(row=0, column=2, padx=(0, 20), pady=(20, 5))
 
+        # === ФАЙЛ ВОЗВРАТОВ ===
+        self.lbl_returns = ctk.CTkLabel(self, text="Файл возвратов (*.xls, *.xlsx) (Опционально):")
+        self.lbl_returns.grid(row=1, column=0, padx=20, pady=5, sticky="w")
+
+        self.entry_returns = ctk.CTkEntry(self, placeholder_text="Выберите файл возвратов")
+        self.entry_returns.grid(row=1, column=1, padx=(0, 20), pady=5, sticky="ew")
+
+        self.btn_browse_returns = ctk.CTkButton(self, text="Обзор", width=100, command=self.browse_returns)
+        self.btn_browse_returns.grid(row=1, column=2, padx=(0, 20), pady=5)
+
         # === JSON ===
         self.lbl_config = ctk.CTkLabel(self, text="Файл конфигурации (*.json):")
-        self.lbl_config.grid(row=1, column=0, padx=20, pady=5, sticky="w")
+        self.lbl_config.grid(row=2, column=0, padx=20, pady=5, sticky="w")
 
         self.entry_config = ctk.CTkEntry(self)
         self.entry_config.insert(0, "config.json")
-        self.entry_config.grid(row=1, column=1, padx=(0, 20), pady=5, sticky="ew")
+        self.entry_config.grid(row=2, column=1, padx=(0, 20), pady=5, sticky="ew")
 
         self.btn_browse_config = ctk.CTkButton(self, text="Обзор", width=100, command=self.browse_config)
-        self.btn_browse_config.grid(row=1, column=2, padx=(0, 20), pady=5)
+        self.btn_browse_config.grid(row=2, column=2, padx=(0, 20), pady=5)
 
         # === ПАПКА СОХРАНЕНИЯ ===
         self.lbl_output = ctk.CTkLabel(self, text="Папка сохранения:")
-        self.lbl_output.grid(row=2, column=0, padx=20, pady=5, sticky="w")
+        self.lbl_output.grid(row=3, column=0, padx=20, pady=5, sticky="w")
 
         self.entry_output = ctk.CTkEntry(self, placeholder_text="По умолчанию: папка с проектом")
-        self.entry_output.grid(row=2, column=1, padx=(0, 20), pady=5, sticky="ew")
+        self.entry_output.grid(row=3, column=1, padx=(0, 20), pady=5, sticky="ew")
 
         self.btn_browse_output = ctk.CTkButton(self, text="Обзор", width=100, command=self.browse_output)
-        self.btn_browse_output.grid(row=2, column=2, padx=(0, 20), pady=5)
+        self.btn_browse_output.grid(row=3, column=2, padx=(0, 20), pady=5)
 
         # === БКИ ===
         self.frame_bki = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_bki.grid(row=3, column=0, columnspan=3, padx=20, pady=(10, 0), sticky="ew")
+        self.frame_bki.grid(row=4, column=0, columnspan=3, padx=20, pady=(10, 0), sticky="ew")
 
         ctk.CTkLabel(self.frame_bki, text="Выбор БКИ:").pack(side="left", padx=(0, 10))
 
@@ -123,7 +133,7 @@ class App(ctk.CTk):
 
         # === ОПЦИИ ===
         self.frame_options = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_options.grid(row=4, column=0, columnspan=3, padx=20, pady=10, sticky="ew")
+        self.frame_options.grid(row=5, column=0, columnspan=3, padx=20, pady=10, sticky="ew")
 
         self.var_log_level = ctk.StringVar(value="INFO")
         self.cmb_log_level = ctk.CTkOptionMenu(
@@ -141,11 +151,11 @@ class App(ctk.CTk):
         self.btn_run = ctk.CTkButton(
             self, text="КОНВЕРТАЦИЯ", height=40, font=("Arial", 14, "bold"), command=self.start_conversion
         )
-        self.btn_run.grid(row=5, column=0, columnspan=3, padx=20, pady=10, sticky="ew")
+        self.btn_run.grid(row=6, column=0, columnspan=3, padx=20, pady=10, sticky="ew")
 
         # === КОНСОЛЬ ЛОГОВ ===
         self.log_textbox = ctk.CTkTextbox(self, state="disabled", wrap="word", font=("Consolas", 12))
-        self.log_textbox.grid(row=6, column=0, columnspan=3, padx=20, pady=(10, 20), sticky="nsew")
+        self.log_textbox.grid(row=7, column=0, columnspan=3, padx=20, pady=(10, 20), sticky="nsew")
 
         def dynamic_gui_filter(record: Record) -> bool:
             """Фильтрует логи для GUI в зависимости от выбранного уровня.
@@ -188,6 +198,15 @@ class App(ctk.CTk):
             self.entry_input.delete(0, "end")
             self.entry_input.insert(0, filepath)
 
+    def browse_returns(self) -> None:
+        """Открывает диалоговое окно для выбора файла возвратов."""
+        filepath = filedialog.askopenfilename(
+            title="Выберите файл возвратов Excel", filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")]
+        )
+        if filepath:
+            self.entry_returns.delete(0, "end")
+            self.entry_returns.insert(0, filepath)
+
     def browse_output(self):
         """Открывает диалоговое окно для выбора папки сохранения."""
         dirpath = filedialog.askdirectory(title="Выберите папку для сохранения")
@@ -204,7 +223,7 @@ class App(ctk.CTk):
             self.entry_config.delete(0, "end")
             self.entry_config.insert(0, filepath)
 
-    def start_conversion(self):
+    def start_conversion(self) -> None:
         """Инициирует процесс конвертации из графического интерфейса.
 
         Проверяет наличие пути к входному файлу, блокирует кнопку запуска,
@@ -213,6 +232,7 @@ class App(ctk.CTk):
         input_path = self.entry_input.get().strip()
         config_path = self.entry_config.get().strip()
         output_path = self.entry_output.get().strip() or "."
+        returns_path = self.entry_returns.get().strip()
         is_debug = self.var_debug.get()
 
         bki_list = []
@@ -243,11 +263,21 @@ class App(ctk.CTk):
         self.log_textbox.configure(state="disabled")
 
         thread = threading.Thread(
-            target=self.run_process_thread, args=(input_path, config_path, output_path, bki_list, is_debug), daemon=True
+            target=self.run_process_thread,
+            args=(input_path, config_path, output_path, bki_list, is_debug, returns_path),
+            daemon=True,
         )
         thread.start()
 
-    def run_process_thread(self, input_path, config_path, output_path, bki_list, is_debug):
+    def run_process_thread(
+        self,
+        input_path: str,
+        config_path: str,
+        output_path: str,
+        bki_list: list[str],
+        is_debug: bool,
+        returns_path: str,
+    ) -> None:
         """Выполняет конвертацию файлов в отдельном фоновом потоке.
 
         Вызывает логику модуля convertor и обрабатывает возможные ошибки с выводом всплывающих окон.
@@ -262,8 +292,9 @@ class App(ctk.CTk):
             logger.debug("Включен режим отладки в GUI.")
 
         try:
+            r_path = Path(returns_path) if returns_path else None
             convertor.run_conversion(
-                Path(input_path), Path(config_path), Path(output_path), bki_list, is_debug=is_debug
+                Path(input_path), Path(config_path), Path(output_path), bki_list, is_debug=is_debug, returns_path=r_path
             )
             message = "Конвертация успешно завершена!\nФайлы сохранены."
             self.after(0, lambda: messagebox.showinfo("Готово", message))

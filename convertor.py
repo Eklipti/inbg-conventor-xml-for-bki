@@ -4,8 +4,8 @@ from pathlib import Path
 
 from loguru import logger
 
+import aggregation
 import excel_parser
-import normalize
 from utils import (
     calculate_days_difference,
     clean_fio,
@@ -609,20 +609,22 @@ def run_conversion(
     output_dir: Path = Path(),
     bki_list: list[str] | None = None,
     is_debug: bool = False,
-):
+    returns_path: Path | None = None,
+) -> None:
     """Оркестрирует весь процесс конвертации из Excel в XML для разных БКИ.
 
     Парсит входной файл, загружает конфигурацию и последовательно запускает
-    генерацию XML-файлов для всех поддерживаемых бюро. В зависимости от режима,
-    использует боевой или отладочный счетчик запусков.
+    генерацию XML-файлов для всех поддерживаемых бюро. При наличии файла возвратов
+    добавляет данные из него в основной файл.
 
     Args:
         file_path (Path): Путь к исходному Excel-файлу.
         config_path (Path): Путь к JSON-файлу конфигурации.
-        output_dir (Path):
-        bki_list (list[str] | None):
+        output_dir (Path, optional): Директория для сохранения файлов.
+        bki_list (list[str] | None, optional): Список требуемых БКИ.
         is_debug (bool, optional): Флаг режима отладки (использует статичный
             счетчик и не обновляет конфиг). По умолчанию False.
+        returns_path (Path | None, optional): Опциональный путь к файлу возвратов.
     """
     config_data = load_config(config_path)
 
@@ -633,11 +635,21 @@ def run_conversion(
         run_counter = int(config_data.get("run_counter", 0))
         logger.debug(f"Текущий счётчик: {run_counter}")
 
-    logger.info(f"Запуск процесса конвертации. Файл: {file_path}")
+    logger.info(f"Запуск процесса конвертации. Основной файл: {file_path}")
 
     try:
-        normalized_file_path = normalize.process_excel_returns(file_path)
-        data_dict = excel_parser.parse_active_sheet(normalized_file_path)
+        if returns_path and returns_path.exists():
+            logger.info(f"Файл возвратов: {returns_path}.")
+            aggregation_file_path = aggregation.process_excel_returns(returns_path, file_path)
+
+            if not aggregation_file_path:
+                logger.error("Сбой нормализации файла возвратов. Обработка прекращена.")
+                return
+        else:
+            logger.debug("Файл возвратов не указан или не найден.")
+            aggregation_file_path = file_path
+
+        data_dict = excel_parser.parse_active_sheet(aggregation_file_path)
     except Exception as e:
         logger.critical(f"Критическая ошибка при чтении Excel: {e}")
         return

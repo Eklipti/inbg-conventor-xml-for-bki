@@ -29,6 +29,9 @@ def run():
     )
     parser.add_argument("-o", "--output", type=str, default=".", help="Путь к директории для сохранения файлов")
     parser.add_argument(
+        "-r", "--returns", type=str, default=None, help="Путь к опциональному файлу возвратов (xls/xlsx)"
+    )
+    parser.add_argument(
         "--bki",
         nargs="*",
         choices=["okb", "scoring", "kbrs", "nbki"],
@@ -48,8 +51,16 @@ def run():
     file_path = Path(args.input)
     config_path = Path(args.json)
     output_dir = Path(args.output)
+    returns_path = Path(args.returns) if args.returns else None
 
     try:
-        convertor.run_conversion(file_path, config_path, output_dir=output_dir, bki_list=args.bki, is_debug=args.debug)
+        convertor.run_conversion(
+            file_path=file_path,
+            config_path=config_path,
+            output_dir=output_dir,
+            bki_list=args.bki,
+            is_debug=args.debug,
+            returns_path=returns_path,
+        )
     except Exception as e:
         logger.error(f"Ошибка в процессе конвертации: {e}")
