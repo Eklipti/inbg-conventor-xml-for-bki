@@ -3,7 +3,7 @@ from pathlib import Path
 
 from loguru import logger
 
-import app.convertor as convertor
+from app import orchestrator
 from app.logger_config import setup_app_logging
 
 
@@ -54,7 +54,7 @@ def run():
     returns_path = Path(args.returns) if args.returns else None
 
     try:
-        convertor.run_conversion(
+        orchestrator.run_conversion(
             file_path=file_path,
             config_path=config_path,
             output_dir=output_dir,

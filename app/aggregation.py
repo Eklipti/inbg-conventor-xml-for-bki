@@ -167,7 +167,7 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
         logger.info("Начало записи агрегированных сумм в основной файл.")
         for (key, date), total_sum in aggregated_sums.items():
             if key not in main_key_row_map:
-                logger.warning(f"Ключ '{key}' не найден.")
+                logger.trace(f"Ключ '{key}' не найден.")
                 err_sheet.append(["Возвраты", key, date, total_sum])
                 continue
 

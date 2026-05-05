@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 import customtkinter as ctk
 from loguru import logger
 
-from app import convertor
+from app import orchestrator
 from app.logger_config import LOG_FORMAT, setup_app_logging
 
 if TYPE_CHECKING:
@@ -318,7 +318,7 @@ class App(ctk.CTk):
 
         try:
             r_path = Path(returns_path) if returns_path else None
-            convertor.run_conversion(
+            orchestrator.run_conversion(
                 Path(input_path), Path(config_path), Path(output_path), bki_list, is_debug=is_debug, returns_path=r_path
             )
             message = "Конвертация успешно завершена!\nФайлы сохранены."
