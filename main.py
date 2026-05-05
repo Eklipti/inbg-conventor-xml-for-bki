@@ -2,8 +2,7 @@ import sys
 
 from loguru import logger
 
-import cli
-import gui
+from app import cli, gui
 
 
 def main():

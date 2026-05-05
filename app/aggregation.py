@@ -1,10 +1,11 @@
+import json
 import sys
 from pathlib import Path
 
 import openpyxl
 from loguru import logger
 
-from utils import convert_xls_to_xlsx, validate_excel
+from app.utils import convert_xls_to_xlsx, validate_excel
 
 
 def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path | None:
@@ -78,7 +79,7 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
 
         aggregated_sums: dict[tuple[str, str], float] = {}
 
-        logger.info("Начало агрегации данных из файла возвратов.")
+        logger.info("Начало слияния возвратов из файла возвратов.")
         for row_idx, row in enumerate(ret_sheet.iter_rows(min_row=3), start=3):
             cell_key = row[idx_ret_key].value
             cell_sum = row[idx_ret_sum].value
@@ -200,7 +201,7 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
 
         logger.debug(f"Сохранение изменений в основной файл: {main_path_obj.name}")
         main_wb.save(main_path_obj)
-        logger.success("Слияние и нормализация успешно завершены.")
+        logger.success("Слияние возвратов успешно завершено.")
 
         return main_path_obj
 
@@ -208,3 +209,110 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
         logger.critical(f"Критический сбой при слиянии файлов: {e}")
         logger.exception("Стек вызовов:")
         sys.exit(1)
+
+
+def process_other_closures(returns_file_path: Path, main_file_path: Path | None) -> Path | None:
+    """Обрабатывает иные закрытия на основе данных из специального листа.
+
+    Ищет лист "закрытие иное" в файле возвратов. На первой строке находит
+    столбцы "Объект" и "Группа ДО", собирает из них данные. Затем в основном
+    файле (лист "Активные") обнуляет остаток долга для найденных объектов
+    и устанавливает статус из dictionary.json согласно их группе.
+
+    Args:
+        returns_file_path (Path): Путь к файлу возвратов (источник).
+        main_file_path (Path): Путь к основному файлу реестра (цель).
+
+    Returns:
+        Path | None: Путь к измененному основному файлу или None, если
+            обработка не удалась или данные не найдены.
+    """
+    logger.info(f"Запуск обработки 'закрытие иное' для {returns_file_path.name}")
+
+    if not main_file_path:
+        logger.critical("Путь к основному файлу не передан (получен None).")
+        return None
+
+    try:
+        project_root = Path(__file__).resolve().parent.parent
+        dict_path = project_root / "dictionary.json"
+
+        if not dict_path.exists():
+            logger.critical(f"Файл словаря не найден в корне проекта: {dict_path}")
+            return None
+
+        with dict_path.open(encoding="utf-8") as f:
+            status_mapping = json.load(f)
+
+        ret_wb = openpyxl.load_workbook(returns_file_path, data_only=True)
+        ret_sheet = None
+        for sheet_name in ret_wb.sheetnames:
+            if sheet_name.lower() == "закрытие иное":
+                ret_sheet = ret_wb[sheet_name]
+                break
+
+        if not ret_sheet:
+            logger.debug("Лист 'закрытие иное' отсутствует.")
+            return None
+
+        idx_ret_obj = None
+        idx_ret_group = None
+
+        for cell in ret_sheet[1]:
+            val = str(cell.value).strip() if cell.value else ""
+            if val == "Объект":
+                idx_ret_obj = cell.column
+            elif val == "Группа ДО":
+                idx_ret_group = cell.column
+
+        if not idx_ret_obj or not idx_ret_group:
+            logger.error("Заголовки 'Объект' или 'Группа ДО' не найдены на первой строке.")
+            return None
+
+        closures_to_process = {}
+        for row_idx in range(2, ret_sheet.max_row + 1):
+            obj_val = str(ret_sheet.cell(row_idx, idx_ret_obj).value or "").strip()
+            group_val = str(ret_sheet.cell(row_idx, idx_ret_group).value or "").strip()
+
+            if obj_val and obj_val != "None":
+                closures_to_process[obj_val] = group_val
+
+        if not closures_to_process:
+            logger.warning("Данные для обработки не найдены под заголовками.")
+            return None
+
+        main_wb = openpyxl.load_workbook(main_file_path)
+        main_sheet = main_wb["Активные"]
+
+        headers = {str(cell.value).strip(): cell.column for cell in main_sheet[2] if cell.value}
+        idx_key = headers.get("Ключевое поле")
+        idx_debt = headers.get("Остаток долга")
+        idx_status = headers.get("Статус долга (Операция)")
+
+        if not all([idx_key, idx_debt, idx_status]):
+            logger.error("В основном файле отсутствуют необходимые столбцы.")
+            return None
+
+        processed_count = 0
+        for row_idx in range(3, main_sheet.max_row + 1):
+            cell_val = str(main_sheet.cell(row_idx, idx_key).value or "").strip()
+
+            if cell_val in closures_to_process:
+                group_do = closures_to_process[cell_val]
+                new_status = status_mapping.get(group_do, f"Неизвестный статус: {group_do}")
+
+                main_sheet.cell(row_idx, idx_debt).value = "0,00"
+                main_sheet.cell(row_idx, idx_status).value = new_status
+                processed_count += 1
+                logger.trace(f"Объект {cell_val} закрыт (статус: {new_status})")
+
+        if processed_count > 0:
+            main_wb.save(main_file_path)
+            logger.success(f"Обработано 'иных закрытий': {processed_count}.")
+            return main_file_path
+        logger.warning("Совпадений по 'Ключевое поле' не найдено в реестре.")
+        return None
+
+    except Exception as e:
+        logger.error(f"Критическая ошибка при обработке иных закрытий: {e}")
+        return None

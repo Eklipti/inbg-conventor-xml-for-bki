@@ -3,8 +3,8 @@ from pathlib import Path
 
 from loguru import logger
 
-import convertor
-from logger_config import setup_app_logging
+import app.convertor as convertor
+from app.logger_config import setup_app_logging
 
 
 def run():

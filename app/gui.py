@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Any
 import customtkinter as ctk
 from loguru import logger
 
-import convertor
-from logger_config import LOG_FORMAT, setup_app_logging
+from app import convertor
+from app.logger_config import LOG_FORMAT, setup_app_logging
 
 if TYPE_CHECKING:
     from loguru import Record

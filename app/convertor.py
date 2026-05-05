@@ -4,9 +4,8 @@ from pathlib import Path
 
 from loguru import logger
 
-import aggregation
-import excel_parser
-from utils import (
+from app import aggregation, excel_parser
+from app.utils import (
     calculate_days_difference,
     clean_fio,
     clean_issuer,
@@ -640,10 +639,12 @@ def run_conversion(
     try:
         if returns_path and returns_path.exists():
             logger.info(f"Файл возвратов: {returns_path}.")
-            aggregation_file_path = aggregation.process_excel_returns(returns_path, file_path)
+
+            process_excel_returns_file_path = aggregation.process_excel_returns(returns_path, file_path)
+            aggregation_file_path = aggregation.process_other_closures(returns_path, process_excel_returns_file_path)
 
             if not aggregation_file_path:
-                logger.error("Сбой нормализации файла возвратов. Обработка прекращена.")
+                logger.critical("Сбой агрегации файла возвратов.")
                 return
         else:
             logger.debug("Файл возвратов не указан или не найден.")

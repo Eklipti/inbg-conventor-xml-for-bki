@@ -30,7 +30,7 @@ def setup_app_logging(log_level: str = "INFO") -> None:
     )
 
     # Файловый вывод (всегда TRACE)
-    log_path: Path = Path("logs") / "{time:YYYY-MM-DD_HH-mm-ss}.log"
+    log_path: Path = Path("../logs") / "{time:YYYY-MM-DD_HH-mm-ss}.log"
 
     logger.add(
         log_path,

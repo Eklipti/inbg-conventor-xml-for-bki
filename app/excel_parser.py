@@ -33,7 +33,6 @@ def parse_active_sheet(file_path: Path) -> dict[int, Any]:
 
         wb = openpyxl.load_workbook(file_path, data_only=True)
         sheet = wb["Активные"]
-        logger.trace("Книга загружена, лист 'Активные' найден")
 
         headers = {}
         for cell in sheet[2]:
