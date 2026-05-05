@@ -4,6 +4,7 @@ from pathlib import Path
 
 import openpyxl
 from loguru import logger
+from openpyxl.worksheet.worksheet import Worksheet
 
 from app.utils import convert_xls_to_xlsx, validate_excel
 
@@ -14,7 +15,7 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
     Читает файл возвратов (лист "взносы", любой регистр), ищет заголовки.
     Агрегирует суммы платежей по ключу (Номер ДО, Дата платежа).
     Затем открывает основной файл (лист "Активные"), ищет соответствующие
-    записи по "Ключевое поле" (совпадает с Номер ДО). В найденную строку
+    записи по "Ключевое поле" (совпадает с "Номер ДО"). В найденную строку
     записывается дата, общая сумма возврата для группы и пересчитывается
     остаток долга (включая установку статуса "close" и обработку перевозврата).
 
@@ -254,7 +255,8 @@ def process_other_closures(returns_file_path: Path, main_file_path: Path | None)
             status_mapping = json.load(f)
 
         ret_wb = openpyxl.load_workbook(returns_file_path, data_only=True)
-        ret_sheet = None
+        ret_sheet: Worksheet | None = None
+
         for sheet_name in ret_wb.sheetnames:
             if sheet_name.lower() == "закрытие иное":
                 ret_sheet = ret_wb[sheet_name]
@@ -267,7 +269,8 @@ def process_other_closures(returns_file_path: Path, main_file_path: Path | None)
         idx_ret_obj = None
         idx_ret_group = None
 
-        for cell in ret_sheet[1]:
+        first_row = next(ret_sheet.iter_rows(min_row=1, max_row=1))
+        for cell in first_row:
             val = str(cell.value).strip() if cell.value else ""
             if val == "Объект":
                 idx_ret_obj = cell.column
@@ -335,7 +338,9 @@ def process_other_closures(returns_file_path: Path, main_file_path: Path | None)
         if processed_count > 0 or len(found_keys) < len(closures_to_process):
             main_wb.save(main_file_path)
             logger.success(
-                f"Обработка завершена. Успешно: {processed_count}, не найдено: {len(closures_to_process) - processed_count}.")
+                f"Обработка завершена. Успешно: {processed_count}, "
+                f"не найдено: {len(closures_to_process) - processed_count}."
+            )
             return main_file_path
 
         logger.warning("Совпадений по 'Ключевое поле' не найдено в реестре.")

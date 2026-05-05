@@ -176,9 +176,9 @@ def build_event(
     ET.SubElement(fl_21, "percentPaySum").text = "0.00"
 
     if event_type in ("2_3", "2_11_2"):
-        build_suffix_2_3(event_elem, row, date_doc_str, bureau, event_type)
+        build_suffix_2_3(event_elem, row, date_doc_str, event_type)
     elif event_type == "2_5":
-        build_suffix_2_5(event_elem, row, date_doc_str, bureau, extra_param)
+        build_suffix_2_5(event_elem, row, date_doc_str, extra_param)
 
 
 def build_fl_27_28(group_25_28: ET.Element, row: dict, date_doc_str: str, event_type: str):
@@ -257,14 +257,13 @@ def build_suffix_2_11_2(event_elem: ET.Element):
     ET.SubElement(fl_12, "code").text = "1"
 
 
-def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str, event_type: str = "2_3"):
+def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, event_type: str = "2_3"):
     """Добавляет специфичные блоки (задолженность, учет) для события типа 'edit' (2.3) и 'add' (2.11.2)..
 
     Args:
         event_elem (ET.Element): Родительский элемент события.
         row (dict): Словарь с данными записи.
         date_doc_str (str): Дата формирования документа.
-        bureau (str): Идентификатор БКИ.
         event_type (str): Тип события для разветвления логики ("2_3" или "2_11_2").
     """
 
@@ -327,14 +326,13 @@ def build_suffix_2_3(event_elem: ET.Element, row: dict, date_doc_str: str, burea
     ET.SubElement(fl_56, "stopExist_0")
 
 
-def build_suffix_2_5(event_elem: ET.Element, row: dict, date_doc_str: str, bureau: str, extra_param: str | None):
+def build_suffix_2_5(event_elem: ET.Element, row: dict, date_doc_str: str, extra_param: str | None):
     """Добавляет специфичные блоки (завершение договора) для события типа 'close' (2.5).
 
     Args:
         event_elem (ET.Element): Родительский элемент события.
         row (dict): Словарь с данными записи.
         date_doc_str (str): Дата формирования документа.
-        bureau (str): Идентификатор БКИ.
         extra_param (str | None): Код завершения договора.
     """
 
@@ -433,6 +431,8 @@ def finalize_and_save_xml(
         data_dict (dict): Данные из Excel.
         config (dict): Конфигурация организации.
         date_doc_str (str): Дата формирования документа.
+        output_dir (Path): Директория для сохранения файла.
+        save_file (bool): Флаг, определяющий, нужно ли записывать файл на диск.
     """
 
     root = ET.Element("Document", attr)
