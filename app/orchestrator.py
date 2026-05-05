@@ -7,165 +7,104 @@ from app import aggregation, excel_parser
 from app.convertor import finalize_and_save_xml
 from app.utils import (
     load_config,
-    save_config,
+    save_config, validate_excel, convert_xls_to_xlsx,
 )
 
 
-def generate_xml_okb(
-    data_dict: dict, config: dict, now: datetime, date_doc_str: str, output_dir: Path, save_file: bool = True
-):
-    """Подготавливает атрибуты и генерирует XML-файл в формате для ОКБ.
-
-    Args:
-        data_dict (dict): Словарь с распарсенными данными.
-        config (dict): Конфигурация организации.
-        now (datetime): Текущие дата и время.
-        date_doc_str (str): Строковое представление даты документа.
-        output_dir (Path): Директория для сохранения файла.
-        save_file (bool, optional): Флаг сохранения файла на диск. По умолчанию True.
-    """
-    logger.info("Генерация XML для ОКБ.")
-    org = config.get("organization", {})
-    okb_conf = config.get("bureaus", {}).get("okb", {})
-
-    source_id = okb_conf.get("sourceID", "02173")
-    reg_num = f"CHP_{source_id}_EFK_04-10_{now.strftime('%Y%m%d%H%M%S')}000"
-    subjects_count = str(len(data_dict) - 1)
-
-    attr = {
-        "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
-        "xsi:noNamespaceSchemaLocation": "Main.xsd",
-        "schemaVersion": "4.1",
-        "inn": org.get("inn", ""),
-        "ogrn": org.get("ogrn", ""),
-        "sourceID": source_id,
-        "regNumberDoc": reg_num,
-        "dateDoc": date_doc_str,
-        "subjectsCount": subjects_count,
-        "groupBlocksCount": subjects_count,
-        "regNumberDocInaccept": reg_num,
-    }
-
-    finalize_and_save_xml("okb", attr, f"{reg_num}.xml", data_dict, config, date_doc_str, output_dir, save_file)
-
-
-def generate_xml_scoring(
+def generate_xml_bureau(
+    bureau_type: str,
     data_dict: dict,
     config: dict,
     now: datetime,
     date_doc_str: str,
-    run_counter: int,
     output_dir: Path,
+    run_counter: int = 0,
     save_file: bool = True,
-):
-    """Подготавливает атрибуты и генерирует XML-файл в формате для Скоринга.
+) -> None:
+    """Подготавливает атрибуты и генерирует XML-файл в формате для заданного БКИ.
 
     Args:
-        data_dict (dict): Словарь с распарсенными данными.
-        config (dict): Конфигурация организации.
-        now (datetime): Текущие дата и время.
-        date_doc_str (str): Строковое представление даты документа.
-        run_counter (int): Текущий счетчик запусков.
-        output_dir (Path): Директория для сохранения файла.
-        save_file (bool, optional): Флаг сохранения файла на диск. По умолчанию True.
-    """
-    logger.info("Генерация XML для Скоринга.")
-    org = config.get("organization", {})
-    subjects_count = str(len(data_dict) - 1)
-
-    reg_num = str(run_counter)
-
-    attr = {
-        "schemaVersion": "4.1",
-        "inn": org.get("inn", ""),
-        "ogrn": org.get("ogrn", ""),
-        "sourceID": "DMH",
-        "regNumberDoc": reg_num,
-        "dateDoc": date_doc_str,
-        "subjectsCount": subjects_count,
-        "groupBlocksCount": subjects_count,
-        "regNumberDocInaccept": reg_num,
-    }
-
-    date_file_str = now.strftime("%Y%m%d")
-    filename = f"DMH_FCH_{date_file_str}_{reg_num}.xml"
-    finalize_and_save_xml("scoring", attr, filename, data_dict, config, date_doc_str, output_dir, save_file)
-
-
-def generate_xml_kbrs(
-    data_dict: dict,
-    config: dict,
-    now: datetime,
-    date_doc_str: str,
-    run_counter: int,
-    output_dir: Path,
-    save_file: bool = True,
-):
-    """Подготавливает атрибуты и генерирует XML-файл в формате для КБРС.
-
-    Args:
-        data_dict (dict): Словарь с распарсенными данными.
-        config (dict): Конфигурация организации.
-        now (datetime): Текущие дата и время.
-        date_doc_str (str): Строковое представление даты документа.
-        run_counter (int): Текущий счетчик запусков.
-        output_dir (Path): Директория для сохранения файла.
-        save_file (bool, optional): Флаг сохранения файла на диск. По умолчанию True.
-    """
-    logger.info("Генерация XML для КБРС.")
-    org = config.get("organization", {})
-    subjects_count = str(len(data_dict) - 1)
-
-    reg_num = f"KBRS_1136_{now.strftime('%Y%m%d')}_{run_counter}"
-
-    attr = {
-        "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
-        "xsi:noNamespaceSchemaLocation": "Main.xsd",
-        "schemaVersion": "4.1",
-        "inn": org.get("inn", ""),
-        "ogrn": org.get("ogrn", ""),
-        "sourceID": "1136",
-        "regNumberDoc": reg_num,
-        "dateDoc": date_doc_str,
-        "subjectsCount": subjects_count,
-        "groupBlocksCount": subjects_count,
-        "regNumberDocInaccept": reg_num,
-    }
-
-    finalize_and_save_xml("kbrs", attr, f"{reg_num}.xml", data_dict, config, date_doc_str, output_dir, save_file)
-
-
-def generate_xml_nbki(
-    data_dict: dict, config: dict, now: datetime, date_doc_str: str, output_dir: Path, save_file: bool = True
-):
-    """Подготавливает атрибуты и генерирует XML-файл в формате для НБКИ.
-
-    Args:
+        bureau_type (str): Строковой идентификатор БКИ ('okb', 'scoring', 'kbrs', 'nbki').
         data_dict (dict): Словарь с распарсенными данными.
         config (dict): Конфигурация организации.
         now (datetime): Текущие дата и время.
         date_doc_str (str): Строковое представление даты документа.
         output_dir (Path): Директория для сохранения файла.
+        run_counter (int, optional): Текущий счетчик запусков. По умолчанию 0.
         save_file (bool, optional): Флаг сохранения файла на диск. По умолчанию True.
+
+    Returns:
+        None
     """
-    logger.info("Генерация XML для НБКИ.")
-    org = config.get("organization", {})
-    subjects_count = str(len(data_dict) - 1)
-    reg_num = f"SJ01SS000001_{now.strftime('%Y%m%d')}_{now.strftime('%H%M%S')}"
+    try:
+        logger.info(f"Начало генерации XML для {bureau_type.upper()}.")
 
-    attr = {
-        "schemaVersion": "4.1",
-        "dateDoc": date_doc_str,
-        "inn": org.get("inn", ""),
-        "ogrn": org.get("ogrn", ""),
-        "sourceID": "SJ01SS000001",
-        "regNumberDoc": reg_num,
-        "subjectsCount": subjects_count,
-        "groupBlocksCount": subjects_count,
-        "regNumberDocInaccept": reg_num,
-    }
+        org: dict = config.get("organization", {})
+        inn: str = org.get("inn", "")
+        ogrn: str = org.get("ogrn", "")
 
-    finalize_and_save_xml("nbki", attr, f"{reg_num}.xml", data_dict, config, date_doc_str, output_dir, save_file)
+        if not inn or not ogrn:
+            logger.warning(f"Для {bureau_type.upper()} отсутствуют ИНН ({inn}) или ОГРН ({ogrn}) в конфигурации.")
+
+        subjects_count: str = str(max(0, len(data_dict) - 1))
+
+        attr: dict = {
+            "schemaVersion": "4.1",
+            "inn": inn,
+            "ogrn": ogrn,
+            "dateDoc": date_doc_str,
+            "subjectsCount": subjects_count,
+            "groupBlocksCount": subjects_count,
+        }
+
+        if bureau_type == "okb":
+            okb_conf: dict = config.get("bureaus", {}).get("okb", {})
+            source_id: str = okb_conf.get("sourceID", "02173")
+            reg_num: str = f"CHP_{source_id}_EFK_04-10_{now.strftime('%Y%m%d%H%M%S')}000"
+            filename: str = f"{reg_num}.xml"
+            attr.update(
+                {
+                    "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+                    "xsi:noNamespaceSchemaLocation": "Main.xsd",
+                }
+            )
+
+        elif bureau_type == "scoring":
+            source_id = "DMH"
+            reg_num = str(run_counter)
+            filename = f"DMH_FCH_{now.strftime('%Y%m%d')}_{reg_num}.xml"
+            logger.trace("Специфичные атрибуты Скоринга сформированы.")
+
+        elif bureau_type == "kbrs":
+            source_id = "1136"
+            reg_num = f"KBRS_{source_id}_{now.strftime('%Y%m%d')}_{run_counter}"
+            filename = f"{reg_num}.xml"
+            attr.update(
+                {
+                    "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+                    "xsi:noNamespaceSchemaLocation": "Main.xsd",
+                }
+            )
+            logger.trace("Специфичные атрибуты КБРС сформированы.")
+
+        elif bureau_type == "nbki":
+            source_id = "SJ01SS000001"
+            reg_num = f"{source_id}_{now.strftime('%Y%m%d')}_{now.strftime('%H%M%S')}"
+            filename = f"{reg_num}.xml"
+            logger.trace("Специфичные атрибуты НБКИ сформированы.")
+
+        else:
+            logger.error(f"Неподдерживаемый тип БКИ: {bureau_type}. Прерывание генерации.")
+            return
+
+        attr["sourceID"] = source_id
+        attr["regNumberDoc"] = reg_num
+        attr["regNumberDocInaccept"] = reg_num
+
+        finalize_and_save_xml(bureau_type, attr, filename, data_dict, config, date_doc_str, output_dir, save_file)
+
+    except Exception as e:
+        logger.exception(f"Критическая ошибка в процессе генерации XML для {bureau_type.upper()}: {e}")
 
 
 def run_conversion(
@@ -193,6 +132,18 @@ def run_conversion(
     """
     config_data = load_config(config_path)
 
+    if returns_path.suffix.lower() == ".xls":
+        logger.info("Обнаружен формат .xls для файла возвратов, запуск конвертации в .xlsx.")
+        returns_path = convert_xls_to_xlsx(returns_path)
+
+    if file_path.suffix.lower() == ".xls":
+        logger.info("Обнаружен формат .xls для основного файла, запуск конвертации в .xlsx.")
+        file_path = convert_xls_to_xlsx(file_path)
+
+    if not validate_excel(file_path):
+        logger.warning(f"Основной файл {file_path.name} не прошел валидацию.")
+        return None
+
     if is_debug:
         logger.debug("Используется тестовый счетчик: 1111")
         run_counter = 1111
@@ -200,7 +151,8 @@ def run_conversion(
         run_counter = int(config_data.get("run_counter", 0))
         logger.debug(f"Текущий счётчик: {run_counter}")
 
-    logger.info(f"Запуск процесса конвертации. Основной файл: {file_path}")
+    logger.success(f"Запуск процесса конвертации.")
+    logger.info(f"Основной файл: {file_path}")
 
     try:
         if returns_path and returns_path.exists():
@@ -211,7 +163,7 @@ def run_conversion(
 
             if not aggregation_file_path:
                 logger.critical("Сбой агрегации файла возвратов.")
-                return
+                return None
         else:
             logger.debug("Файл возвратов не указан или не найден.")
             aggregation_file_path = file_path
@@ -219,11 +171,11 @@ def run_conversion(
         data_dict = excel_parser.parse_active_sheet(aggregation_file_path)
     except Exception as e:
         logger.critical(f"Критическая ошибка при чтении Excel: {e}")
-        return
+        return None
 
     if len(data_dict) <= 1:
         logger.warning(f"Файл {file_path.name} не содержит данных для обработки.")
-        return
+        return None
 
     now = datetime.now()
     date_doc_str = now.strftime("%Y-%m-%d")
@@ -243,22 +195,17 @@ def run_conversion(
 
     for bki in active_bkis:
         try:
-            if bki == "okb":
-                generate_xml_okb(data_dict, config_data, now, date_doc_str, output_dir, save_files)
-                logger.success(f"Бюро {bki.upper()}: Конвертация успешно завершена.")
-
-            if bki == "scoring":
-                generate_xml_scoring(data_dict, config_data, now, date_doc_str, run_counter, output_dir, save_files)
-                logger.success(f"Бюро {bki.upper()}: Конвертация успешно завершена.")
-
-            if bki == "kbrs":
-                generate_xml_kbrs(data_dict, config_data, now, date_doc_str, run_counter, output_dir, save_files)
-                logger.success(f"Бюро {bki.upper()}: Конвертация успешно завершена.")
-
-            if bki == "nbki":
-                generate_xml_nbki(data_dict, config_data, now, date_doc_str, output_dir, save_files)
-                logger.success(f"Бюро {bki.upper()}: Конвертация успешно завершена.")
-
+            generate_xml_bureau(
+                bureau_type=bki,
+                data_dict=data_dict,
+                config=config_data,
+                now=now,
+                date_doc_str=date_doc_str,
+                output_dir=output_dir,
+                run_counter=run_counter,
+                save_file=save_files,
+            )
+            logger.success(f"Бюро {bki.upper()}: Конвертация успешно завершена.")
         except Exception as e:
             logger.error(f"Ошибка при генерации XML для {bki.upper()}: {e}")
 
@@ -267,3 +214,5 @@ def run_conversion(
     if not is_debug and save_files:
         config_data["run_counter"] = run_counter + 1
         save_config(config_data, config_path)
+
+    return None
