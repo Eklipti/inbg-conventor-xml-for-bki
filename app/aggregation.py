@@ -6,10 +6,10 @@ import openpyxl
 from loguru import logger
 from openpyxl.worksheet.worksheet import Worksheet
 
-from app.utils import convert_xls_to_xlsx, validate_excel
+from app.utils import validate_excel
 
 
-def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path | None:
+def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> tuple[Path | None, int, int]:
     """Извлекает данные из файла возвратов, агрегирует их и обновляет основной файл.
 
     Читает файл возвратов (лист "взносы", любой регистр), ищет заголовки.
@@ -24,23 +24,20 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
         main_file_path (Path): Путь к основному файлу Excel (файл-реципиент).
 
     Returns:
-        Path | None: Путь к обработанному основному файлу при успехе,
-        или None при ошибках валидации, конвертации или отсутствии нужных данных.
+        tuple[Path | None, int, int]: Кортеж, содержащий:
+            - Путь к обработанному основному файлу (или None при ошибке).
+            - Количество успешно обновленных записей (int).
+            - Количество ненайденных записей (int).
 
     Raises:
         SystemExit: При возникновении критических ошибок в процессе обработки.
     """
-    logger.info(f'Слияние данных из "{returns_file_path.name}" в "{main_file_path.name}"')
+    logger.debug(f'Слияние данных из "{returns_file_path.name}" в "{main_file_path.name}"')
 
     ret_path_obj = Path(returns_file_path)
     main_path_obj = Path(main_file_path)
 
     try:
-        if ret_path_obj.suffix.lower() == ".xls":
-            logger.info("Обнаружен формат .xls для файла возвратов, запуск конвертации в .xlsx.")
-            ret_path_obj = convert_xls_to_xlsx(ret_path_obj)
-
-        logger.trace("Загрузка рабочей книги возвратов.")
         ret_wb = openpyxl.load_workbook(ret_path_obj, data_only=True)
 
         ret_sheet = None
@@ -51,7 +48,7 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
 
         if ret_sheet is None:
             logger.error('Лист "взносы" не найден в файле возвратов.')
-            return None
+            return None, 0, 0
 
         ret_target_headers: list[str] = [
             "Долговое обязательство.Номер ДО",
@@ -60,7 +57,6 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
         ]
         ret_headers_idx: dict[str, int] = {}
 
-        logger.trace("Поиск индексов заголовков в файле возвратов (строка 1).")
         for r_idx in [1]:
             for row in ret_sheet.iter_rows(min_row=r_idx, max_row=r_idx):
                 for cell in row:
@@ -72,7 +68,7 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
         if len(ret_headers_idx) != len(ret_target_headers):
             missing = set(ret_target_headers) - set(ret_headers_idx.keys())
             logger.error(f"В файле возвратов не найдены заголовки: {missing}.")
-            return None
+            return None, 0, 0
 
         idx_ret_key: int = ret_headers_idx["Долговое обязательство.Номер ДО"]
         idx_ret_sum: int = ret_headers_idx["Поступление платежа.Сумма платежа"]
@@ -80,7 +76,7 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
 
         aggregated_sums: dict[tuple[str, str], float] = {}
 
-        logger.info("Начало слияния возвратов из файла возвратов.")
+        logger.info("Начало слияния возвратов.")
         for row_idx, row in enumerate(ret_sheet.iter_rows(min_row=3), start=3):
             cell_key = row[idx_ret_key].value
             cell_sum = row[idx_ret_sum].value
@@ -98,7 +94,7 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
                 sum_float = float(clean_sum)
             except ValueError:
                 logger.error(f"Файл возвратов, строка {row_idx}: невозможно преобразовать '{sum_str}' в число.")
-                return None
+                return None, 0, 0
 
             dict_key = (key_val, date_val)
             if dict_key in aggregated_sums:
@@ -108,15 +104,10 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
 
         logger.debug(f"Агрегация возвратов завершена. Уникальных записей: {len(aggregated_sums)}.")
 
-        if main_path_obj.suffix.lower() == ".xls":
-            logger.info("Обнаружен формат .xls для основного файла, запуск конвертации в .xlsx.")
-            main_path_obj = convert_xls_to_xlsx(main_path_obj)
-
         if not validate_excel(main_path_obj):
             logger.warning(f"Основной файл {main_path_obj.name} не прошел валидацию.")
-            return None
+            return None, 0, 0
 
-        logger.debug("Загрузка основного файла Excel.")
         main_wb = openpyxl.load_workbook(main_path_obj)
         main_sheet = main_wb["Активные"]
 
@@ -130,7 +121,6 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
         ]
         main_headers_idx: dict[str, int] = {}
 
-        logger.trace("Поиск индексов заголовков во второй строке основного файла.")
         for row in main_sheet.iter_rows(min_row=2, max_row=2):
             for cell in row:
                 if cell.value and str(cell.value).strip() in main_target_headers:
@@ -139,7 +129,7 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
         if len(main_headers_idx) != len(main_target_headers):
             missing = set(main_target_headers) - set(main_headers_idx.keys())
             logger.error(f"В основном файле не найдены заголовки: {missing}.")
-            return None
+            return None, 0, 0
 
         idx_main_key: int = main_headers_idx["Ключевое поле"]
         idx_main_sum: int = main_headers_idx["Сумма последнего возрата"]
@@ -155,7 +145,6 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
 
         err_sheet = main_wb.create_sheet(error_sheet_name)
         err_sheet.append(["Источник", "Ключ", "Дата", "Сумма / Группа"])
-        logger.debug(f"Инициализирован лист '{error_sheet_name}'.")
 
         main_key_row_map: dict[str, int] = {}
         for row_idx, row in enumerate(main_sheet.iter_rows(min_row=3), start=3):
@@ -164,13 +153,18 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
             if key_val and key_val not in main_key_row_map:
                 main_key_row_map[key_val] = row_idx
 
+        success_count = 0
+        not_found_count = 0
+
         logger.info("Начало записи агрегированных сумм в основной файл.")
         for (key, date), total_sum in aggregated_sums.items():
             if key not in main_key_row_map:
-                logger.trace(f"Ключ '{key}' не найден.")
+                logger.warning(f"{key}: не найден.")
                 err_sheet.append(["Возвраты", key, date, total_sum])
+                not_found_count += 1
                 continue
 
+            success_count += 1
             row_idx = main_key_row_map[key]
 
             formatted_sum: str = f"{total_sum:.2f}".replace(".", ",")
@@ -187,25 +181,25 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
                 logger.error(
                     f"Ошибка в строке {row_idx} основного файла: невозможно преобразовать остаток '{debt_str}'."
                 )
-                return None
+                return None, 0, 0
 
             new_debt: float = current_debt - total_sum
 
             if new_debt == 0:
-                logger.trace(f"Строка {row_idx}: Долг полностью погашен (в ноль).")
+                logger.trace(f"{key}: Долг полностью погашен (в ноль).")
                 main_sheet.cell(row=row_idx, column=idx_main_status + 1, value="close")
                 formatted_new_debt = f"{new_debt:.2f}".replace(".", ",")
                 main_sheet.cell(row=row_idx, column=idx_main_debt + 1, value=formatted_new_debt)
 
             elif new_debt < 0:
-                logger.trace(f"Строка {row_idx}: Долг закрыт, есть перевозврат: {new_debt}.")
+                logger.trace(f"{key}: Перевозврат - {new_debt:.2f}.")
                 main_sheet.cell(row=row_idx, column=idx_main_status + 1, value="close")
                 formatted_overpayment: str = f"{new_debt:.2f}".replace(".", ",")
                 main_sheet.cell(row=row_idx, column=idx_main_overpayment + 1, value=formatted_overpayment)
                 main_sheet.cell(row=row_idx, column=idx_main_debt + 1, value="0,00")
 
             else:
-                logger.trace(f"Строка {row_idx}: Обновлен остаток долга: {new_debt}.")
+                logger.trace(f"{key}: Обновлен остаток долга - {current_debt:.2f} (было) / {new_debt:.2f} (стало).")
                 formatted_new_debt = f"{new_debt:.2f}".replace(".", ",")
                 main_sheet.cell(row=row_idx, column=idx_main_debt + 1, value=formatted_new_debt)
 
@@ -213,7 +207,7 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
         main_wb.save(main_path_obj)
         logger.success("Слияние возвратов успешно завершено.")
 
-        return main_path_obj
+        return main_path_obj, success_count, not_found_count
 
     except Exception as e:
         logger.critical(f"Критический сбой при слиянии файлов: {e}")
@@ -221,7 +215,7 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
         sys.exit(1)
 
 
-def process_other_closures(returns_file_path: Path, main_file_path: Path | None) -> Path | None:
+def process_other_closures(returns_file_path: Path, main_file_path: Path | None) -> tuple[Path | None, int, int]:
     """Обрабатывает иные закрытия на основе данных из специального листа.
 
     Ищет лист "закрытие иное" в файле возвратов. На первой строке находит
@@ -234,14 +228,17 @@ def process_other_closures(returns_file_path: Path, main_file_path: Path | None)
         main_file_path (Path): Путь к основному файлу реестра (цель).
 
     Returns:
-        Path | None: Путь к измененному основному файлу или None, если
-            обработка не удалась или данные не найдены.
+        tuple[Path | None, int, int]: Кортеж, содержащий:
+            - Путь к измененному основному файлу (или None при ошибке).
+            - Количество успешно обработанных закрытий (int).
+            - Количество ненайденных закрытий (int).
     """
-    logger.info(f"Запуск обработки 'закрытие иное' для {returns_file_path.name}")
+    logger.info('Запуск обработки "закрытие иное".')
+    logger.debug(f"Для {returns_file_path}")
 
     if not main_file_path:
         logger.critical("Путь к основному файлу не передан (получен None).")
-        return None
+        return None, 0, 0
 
     try:
         project_root = Path(__file__).resolve().parent.parent
@@ -249,7 +246,7 @@ def process_other_closures(returns_file_path: Path, main_file_path: Path | None)
 
         if not dict_path.exists():
             logger.critical(f"Файл словаря не найден в корне проекта: {dict_path}")
-            return None
+            return None, 0, 0
 
         with dict_path.open(encoding="utf-8") as f:
             status_mapping = json.load(f)
@@ -264,7 +261,7 @@ def process_other_closures(returns_file_path: Path, main_file_path: Path | None)
 
         if not ret_sheet:
             logger.debug("Лист 'закрытие иное' отсутствует.")
-            return None
+            return None, 0, 0
 
         idx_ret_obj = None
         idx_ret_group = None
@@ -279,7 +276,7 @@ def process_other_closures(returns_file_path: Path, main_file_path: Path | None)
 
         if not idx_ret_obj or not idx_ret_group:
             logger.error("Заголовки 'Объект' или 'Группа ДО' не найдены на первой строке.")
-            return None
+            return None, 0, 0
 
         closures_to_process = {}
         for row_idx in range(2, ret_sheet.max_row + 1):
@@ -291,7 +288,7 @@ def process_other_closures(returns_file_path: Path, main_file_path: Path | None)
 
         if not closures_to_process:
             logger.warning("Данные для обработки не найдены под заголовками.")
-            return None
+            return None, 0, 0
 
         main_wb = openpyxl.load_workbook(main_file_path)
 
@@ -313,7 +310,7 @@ def process_other_closures(returns_file_path: Path, main_file_path: Path | None)
 
         if not all([idx_key, idx_debt, idx_status]):
             logger.error("В основном файле отсутствуют необходимые столбцы.")
-            return None
+            return None, 0, 0
 
         processed_count = 0
         found_keys = set()
@@ -328,23 +325,21 @@ def process_other_closures(returns_file_path: Path, main_file_path: Path | None)
                 main_sheet.cell(row_idx, idx_status).value = new_status
                 processed_count += 1
                 found_keys.add(cell_val)
-                logger.trace(f"Объект {cell_val} закрыт ({new_status})")
+                logger.trace(f"{cell_val}: закрыт ({new_status})")
 
         for obj_val, group_val in closures_to_process.items():
             if obj_val not in found_keys:
-                logger.trace(f"Объект '{obj_val}' не найден.")
+                logger.warning(f"{obj_val}: не найден.")
                 err_sheet.append(["Иные закрытия", obj_val, "-", group_val])
 
         if processed_count > 0 or len(found_keys) < len(closures_to_process):
             main_wb.save(main_file_path)
-            logger.success(
-                f"Обработка завершена. Успешно: {processed_count}, "
-                f"не найдено: {len(closures_to_process) - processed_count}."
-            )
-            return main_file_path
+            not_found_count = len(closures_to_process) - processed_count
+            logger.success("Обработка завершена.")
+            return main_file_path, processed_count, not_found_count
 
         logger.warning("Совпадений по 'Ключевое поле' не найдено в реестре.")
-        return None
+        return None, 0, 0
 
     except Exception as e:
         logger.error(f"Критическая ошибка при обработке иных закрытий: {e}")

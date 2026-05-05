@@ -384,7 +384,7 @@ def build_data_block(root: ET.Element, data_dict: dict, date_doc_str: str, burea
         if key == 0:
             continue
 
-        if key % 428 == 0:
+        if key % 1000 == 0:
             logger.debug(f"Обработка записи #{event_counter}")
 
         subject_fl = ET.SubElement(data_elem, "Subject_FL")

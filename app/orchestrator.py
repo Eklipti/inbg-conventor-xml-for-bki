@@ -1,13 +1,16 @@
 from datetime import datetime
 from pathlib import Path
+from time import perf_counter
 
 from loguru import logger
 
 from app import aggregation, excel_parser
 from app.convertor import finalize_and_save_xml
 from app.utils import (
+    convert_xls_to_xlsx,
     load_config,
-    save_config, validate_excel, convert_xls_to_xlsx,
+    save_config,
+    validate_excel,
 )
 
 
@@ -20,7 +23,7 @@ def generate_xml_bureau(
     output_dir: Path,
     run_counter: int = 0,
     save_file: bool = True,
-) -> None:
+) -> Path | None:
     """Подготавливает атрибуты и генерирует XML-файл в формате для заданного БКИ.
 
     Args:
@@ -34,7 +37,7 @@ def generate_xml_bureau(
         save_file (bool, optional): Флаг сохранения файла на диск. По умолчанию True.
 
     Returns:
-        None
+        Path | None: Путь к сохраненному файлу, либо None при ошибке или если сохранение отключено.
     """
     try:
         logger.info(f"Начало генерации XML для {bureau_type.upper()}.")
@@ -73,7 +76,6 @@ def generate_xml_bureau(
             source_id = "DMH"
             reg_num = str(run_counter)
             filename = f"DMH_FCH_{now.strftime('%Y%m%d')}_{reg_num}.xml"
-            logger.trace("Специфичные атрибуты Скоринга сформированы.")
 
         elif bureau_type == "kbrs":
             source_id = "1136"
@@ -85,17 +87,15 @@ def generate_xml_bureau(
                     "xsi:noNamespaceSchemaLocation": "Main.xsd",
                 }
             )
-            logger.trace("Специфичные атрибуты КБРС сформированы.")
 
         elif bureau_type == "nbki":
             source_id = "SJ01SS000001"
             reg_num = f"{source_id}_{now.strftime('%Y%m%d')}_{now.strftime('%H%M%S')}"
             filename = f"{reg_num}.xml"
-            logger.trace("Специфичные атрибуты НБКИ сформированы.")
 
         else:
             logger.error(f"Неподдерживаемый тип БКИ: {bureau_type}. Прерывание генерации.")
-            return
+            return None
 
         attr["sourceID"] = source_id
         attr["regNumberDoc"] = reg_num
@@ -103,8 +103,13 @@ def generate_xml_bureau(
 
         finalize_and_save_xml(bureau_type, attr, filename, data_dict, config, date_doc_str, output_dir, save_file)
 
+        if save_file:
+            return output_dir / filename
+        return None
+
     except Exception as e:
         logger.exception(f"Критическая ошибка в процессе генерации XML для {bureau_type.upper()}: {e}")
+        return None
 
 
 def run_conversion(
@@ -131,8 +136,9 @@ def run_conversion(
         returns_path (Path | None, optional): Опциональный путь к файлу возвратов.
     """
     config_data = load_config(config_path)
+    start_time = perf_counter()
 
-    if returns_path.suffix.lower() == ".xls":
+    if returns_path is not None and returns_path.suffix.lower() == ".xls":
         logger.info("Обнаружен формат .xls для файла возвратов, запуск конвертации в .xlsx.")
         returns_path = convert_xls_to_xlsx(returns_path)
 
@@ -142,7 +148,7 @@ def run_conversion(
 
     if not validate_excel(file_path):
         logger.warning(f"Основной файл {file_path.name} не прошел валидацию.")
-        return None
+        return
 
     if is_debug:
         logger.debug("Используется тестовый счетчик: 1111")
@@ -151,19 +157,25 @@ def run_conversion(
         run_counter = int(config_data.get("run_counter", 0))
         logger.debug(f"Текущий счётчик: {run_counter}")
 
-    logger.success(f"Запуск процесса конвертации.")
+    logger.success("Запуск процесса конвертации.")
     logger.info(f"Основной файл: {file_path}")
+
+    ret_success = ret_not_found = clos_success = clos_not_found = 0
 
     try:
         if returns_path and returns_path.exists():
             logger.info(f"Файл возвратов: {returns_path}.")
 
-            process_excel_returns_file_path = aggregation.process_excel_returns(returns_path, file_path)
-            aggregation_file_path = aggregation.process_other_closures(returns_path, process_excel_returns_file_path)
+            process_excel_returns_file_path, ret_success, ret_not_found = aggregation.process_excel_returns(
+                returns_path, file_path
+            )
+            aggregation_file_path, clos_success, clos_not_found = aggregation.process_other_closures(
+                returns_path, process_excel_returns_file_path
+            )
 
             if not aggregation_file_path:
                 logger.critical("Сбой агрегации файла возвратов.")
-                return None
+                return
         else:
             logger.debug("Файл возвратов не указан или не найден.")
             aggregation_file_path = file_path
@@ -171,11 +183,11 @@ def run_conversion(
         data_dict = excel_parser.parse_active_sheet(aggregation_file_path)
     except Exception as e:
         logger.critical(f"Критическая ошибка при чтении Excel: {e}")
-        return None
+        return
 
     if len(data_dict) <= 1:
         logger.warning(f"Файл {file_path.name} не содержит данных для обработки.")
-        return None
+        return
 
     now = datetime.now()
     date_doc_str = now.strftime("%Y-%m-%d")
@@ -193,9 +205,10 @@ def run_conversion(
     if save_files and not output_dir.exists():
         output_dir.mkdir(parents=True, exist_ok=True)
 
+    generated_files = []
     for bki in active_bkis:
         try:
-            generate_xml_bureau(
+            saved_path = generate_xml_bureau(
                 bureau_type=bki,
                 data_dict=data_dict,
                 config=config_data,
@@ -205,14 +218,32 @@ def run_conversion(
                 run_counter=run_counter,
                 save_file=save_files,
             )
+            if saved_path:
+                generated_files.append(saved_path)
             logger.success(f"Бюро {bki.upper()}: Конвертация успешно завершена.")
         except Exception as e:
             logger.error(f"Ошибка при генерации XML для {bki.upper()}: {e}")
 
     logger.info("Процесс конвертации завершен.")
 
+    total_time = perf_counter() - start_time
+    total_records = max(0, len(data_dict) - 1)
+    speed = total_records / total_time if total_time > 0 else 0
+
+    logger.info(f"Общее время: {total_time:.2f} сек.")
+    logger.info(f"Обработано записей: {total_records} ({speed:.1f} зап/сек).")
+
+    if returns_path and returns_path.exists():
+        logger.info(f"Слияние возвратов: {ret_success} успешно, {ret_not_found} не найдено.")
+        logger.info(f"Закрытия: {clos_success} успешно, {clos_not_found} не найдено.")
+
+    for f in generated_files:
+        if f.exists():
+            size_mb = f.stat().st_size / (1024 * 1024)
+            logger.info(f"Итоговый файл: {f.name} ({size_mb:.2f} MB).")
+
     if not is_debug and save_files:
         config_data["run_counter"] = run_counter + 1
         save_config(config_data, config_path)
 
-    return None
+    return

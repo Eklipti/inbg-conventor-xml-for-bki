@@ -8,6 +8,7 @@ LOG_FORMAT: str = "{time:YYYY-MM-DD HH:mm:ss.SSS} - [{module:^12}] - [{level:^7}
 LOG_FORMAT_COLOR: str = (
     "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green>"
     " - <black>[{module:^12}]</black>"
+    " - <cyan>[{function:^21}]</cyan>"
     " - <level>[{level:^7}]</level>"
     " - <level>{message}</level>"
 )

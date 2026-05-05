@@ -29,7 +29,7 @@ def parse_active_sheet(file_path: Path) -> dict[int, Any]:
     parsed_data: dict[int, Any] = {0: "null"}
 
     try:
-        logger.info(f"Начало обработки файла: {file_path.name}")
+        logger.info(f"Начало парсинга для формирования БКИ. Файл: {file_path.name}")
 
         wb = openpyxl.load_workbook(file_path, data_only=True)
         sheet = wb["Активные"]
@@ -38,12 +38,6 @@ def parse_active_sheet(file_path: Path) -> dict[int, Any]:
         for cell in sheet[2]:
             if cell.value:
                 headers[str(cell.value).strip()] = cell.column - 1
-
-        headers_keys = list(headers.keys())
-        headers_limit = 5
-        headers_display_keys = headers_keys[:headers_limit]
-        suffix = f"... и еще {len(headers_keys) - headers_limit}" if len(headers_keys) > headers_limit else ""
-        logger.trace(f"Заголовки: {headers_display_keys}{suffix}.")
 
         col_v33 = headers.get("# в33")
         if col_v33 is None:
