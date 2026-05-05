@@ -14,22 +14,26 @@
 ## Дерево проекта
 ```text
 inbg-conventor-xml-for-bki/
+├── app/
+│   ├── __init__.py
+│   ├── aggregation.py
+│   ├── cli.py
+│   ├── convertor.py
+│   ├── excel_parser.py
+│   ├── gui.py
+│   ├── logger_config.py
+│   └── utils.py
 ├── logs/
 ├── tests/
 ├── .gitignore
 ├── .python-version
-├── aggregation.py
-├── cli.py
-├── convertor.py
-├── excel_parser.py
-├── function_documentation.md
-├── gui.py
 ├── LICENSE
-├── logger_config.py
+├── README.md
+├── config.json
+├── dictionary.json
+├── function_documentation.md
 ├── main.py
 ├── pyproject.toml
-├── README.md
-├── utils.py
 └── uv.lock
 ```
 
