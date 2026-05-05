@@ -147,7 +147,15 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
         idx_main_status: int = main_headers_idx["Статус долга (Операция)"]
         idx_main_overpayment: int = main_headers_idx["Перевозврат"]
 
-        logger.trace("Создание карты строк основного файла по Ключевому полю.")
+        error_sheet_name = "Не найдено в реестре"
+        if error_sheet_name in main_wb.sheetnames:
+            main_wb.remove(main_wb[error_sheet_name])
+            logger.trace(f"Лист '{error_sheet_name}' очищен для новой итерации.")
+
+        err_sheet = main_wb.create_sheet(error_sheet_name)
+        err_sheet.append(["Источник", "Ключ", "Дата", "Сумма / Группа"])
+        logger.debug(f"Инициализирован лист '{error_sheet_name}'.")
+
         main_key_row_map: dict[str, int] = {}
         for row_idx, row in enumerate(main_sheet.iter_rows(min_row=3), start=3):
             cell_key = row[idx_main_key].value
@@ -158,7 +166,8 @@ def process_excel_returns(returns_file_path: Path, main_file_path: Path) -> Path
         logger.info("Начало записи агрегированных сумм в основной файл.")
         for (key, date), total_sum in aggregated_sums.items():
             if key not in main_key_row_map:
-                logger.trace(f"Ключ '{key}' не найден в основном файле. Пропуск.")
+                logger.warning(f"Ключ '{key}' не найден.")
+                err_sheet.append(["Возвраты", key, date, total_sum])
                 continue
 
             row_idx = main_key_row_map[key]
@@ -282,6 +291,16 @@ def process_other_closures(returns_file_path: Path, main_file_path: Path | None)
             return None
 
         main_wb = openpyxl.load_workbook(main_file_path)
+
+        error_sheet_name = "Не найдено в реестре"
+        if error_sheet_name in main_wb.sheetnames:
+            err_sheet = main_wb[error_sheet_name]
+            logger.trace(f"Лист '{error_sheet_name}' найден, данные будут добавлены.")
+        else:
+            err_sheet = main_wb.create_sheet(error_sheet_name)
+            err_sheet.append(["Источник", "Ключ", "Дата", "Сумма / Группа"])
+            logger.debug(f"Лист '{error_sheet_name}' не найден, создан новый.")
+
         main_sheet = main_wb["Активные"]
 
         headers = {str(cell.value).strip(): cell.column for cell in main_sheet[2] if cell.value}
@@ -294,6 +313,7 @@ def process_other_closures(returns_file_path: Path, main_file_path: Path | None)
             return None
 
         processed_count = 0
+        found_keys = set()
         for row_idx in range(3, main_sheet.max_row + 1):
             cell_val = str(main_sheet.cell(row_idx, idx_key).value or "").strip()
 
@@ -304,15 +324,24 @@ def process_other_closures(returns_file_path: Path, main_file_path: Path | None)
                 main_sheet.cell(row_idx, idx_debt).value = "0,00"
                 main_sheet.cell(row_idx, idx_status).value = new_status
                 processed_count += 1
-                logger.trace(f"Объект {cell_val} закрыт (статус: {new_status})")
+                found_keys.add(cell_val)
+                logger.trace(f"Объект {cell_val} закрыт ({new_status})")
 
-        if processed_count > 0:
+        for obj_val, group_val in closures_to_process.items():
+            if obj_val not in found_keys:
+                logger.trace(f"Объект '{obj_val}' не найден.")
+                err_sheet.append(["Иные закрытия", obj_val, "-", group_val])
+
+        if processed_count > 0 or len(found_keys) < len(closures_to_process):
             main_wb.save(main_file_path)
-            logger.success(f"Обработано 'иных закрытий': {processed_count}.")
+            logger.success(
+                f"Обработка завершена. Успешно: {processed_count}, не найдено: {len(closures_to_process) - processed_count}.")
             return main_file_path
+
         logger.warning("Совпадений по 'Ключевое поле' не найдено в реестре.")
         return None
 
     except Exception as e:
         logger.error(f"Критическая ошибка при обработке иных закрытий: {e}")
-        return None
+        logger.exception("Стек вызовов:")
+        sys.exit(2)
