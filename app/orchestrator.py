@@ -5,6 +5,7 @@ from time import perf_counter
 from loguru import logger
 
 from app import aggregation, excel_parser
+from app.aggregation import customize_excel
 from app.convertor import finalize_and_save_xml
 from app.utils import (
     convert_xls_to_xlsx,
@@ -183,6 +184,10 @@ def run_conversion(
         data_dict = excel_parser.parse_active_sheet(aggregation_file_path)
     except Exception as e:
         logger.critical(f"Критическая ошибка при чтении Excel: {e}")
+        return
+
+    if not customize_excel(aggregation_file_path):
+        logger.critical("Сбой установки форматирования.")
         return
 
     if len(data_dict) <= 1:

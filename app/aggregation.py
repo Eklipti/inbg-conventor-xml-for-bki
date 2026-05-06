@@ -1,9 +1,14 @@
 import json
+import pathlib
+import re
 import sys
 from pathlib import Path
 
 import openpyxl
 from loguru import logger
+from openpyxl import load_workbook
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
 from app.utils import validate_excel
@@ -345,3 +350,263 @@ def process_other_closures(returns_file_path: Path, main_file_path: Path | None)
         logger.error(f"Критическая ошибка при обработке иных закрытий: {e}")
         logger.exception("Стек вызовов:")
         sys.exit(2)
+
+
+def customize_excel(file_path: pathlib.Path | str) -> bool:
+    """Кастомизирует Excel файл: применяет стили, сортировку, автофильтры и ширину колонок.
+
+    Функция выполняет комплексную предобработку файла:
+    1. Форматирует заголовки (шрифт, заливка, границы).
+    2. Сортирует данные по статусу операции и наличию возвратов.
+    3. Очищает и нормализует форматы дат до 'DD.MM.YYYY'.
+    4. Раскрашивает строки в зависимости от логической группы (новые, закрытые, возвраты).
+    5. Настраивает ширину колонок (фиксированную или по содержимому).
+    6. Устанавливает автофильтры.
+
+    Args:
+        file_path (pathlib.Path | str): Путь к обрабатываемому файлу Excel.
+            Должен указывать на существующий файл .xlsx.
+
+    Returns:
+        bool: True, если кастомизация прошла успешно. False, если файл не найден
+            или в процессе обработки возникло критическое исключение.
+    """
+
+    try:
+        path = pathlib.Path(file_path)
+        if not path.is_file():
+            logger.error(f"Файл не найден по указанному пути: {path}")
+            return False
+
+        wb = load_workbook(path)
+        ws = wb.active
+
+        green_fill = PatternFill(start_color="92D050", end_color="92D050", fill_type="solid")
+        yellow_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+        arial_font = Font(name="Arial", size=10)
+        date_alignment = Alignment(horizontal="right")
+
+        date_columns = {
+            "Дата выдачи",
+            "Дата рождения",
+            "Дата согласия на обработку ПДН (дата договора)",
+            "Дата создания (дата передачи цессии)",
+            "Дата последнего возврата",
+        }
+
+        green_headers = {
+            "Фамилия",
+            "Имя",
+            "Отчество",
+            "Дата рождения",
+            "Место рождения",
+            "Серия-Номер",
+            "Дата выдачи",
+            "Кем выдан",
+            "Код подразделения",
+            "Уникальный идентификатор договора (сделки) БАНКА",
+            "Дата согласия на обработку ПДН (дата договора)",
+            "Статус долга (Операция)",
+            "Дата создания (дата передачи цессии)",
+            "Общая сумма долга",
+            "Остаток долга",
+            "Сумма последнего возрата",
+            "Дата последнего возврата",
+        }
+        yellow_headers = {"Перевозврат", "ВОЗВРАТ"}
+
+        headers = {}
+        for cell in ws[2]:
+            if cell.value:
+                headers[str(cell.value)] = cell.column
+
+            if cell.value in green_headers:
+                cell.fill = green_fill
+            elif cell.value in yellow_headers:
+                cell.fill = yellow_fill
+
+        thin_border = Border(
+            left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin")
+        )
+
+        bold_arial_font = Font(name="Arial", size=10, bold=True)
+        ws.row_dimensions[2].height = 51
+
+        headers = {}
+        for cell in ws[2]:
+            cell.font = bold_arial_font
+            cell.border = thin_border
+
+            if cell.value:
+                headers[str(cell.value)] = cell.column
+
+            if cell.value in green_headers:
+                cell.fill = green_fill
+            elif cell.value in yellow_headers:
+                cell.fill = yellow_fill
+
+        status_col = headers.get("Статус долга (Операция)")
+        return_col = headers.get("Перевозврат")
+        num_col = headers.get("# в33")
+
+        rows_data = []
+        for row in ws.iter_rows(min_row=3, values_only=True):
+            if any(cell is not None for cell in row):
+                rows_data.append(list(row))
+
+        def _sort_key(row):
+            """Определяет приоритет сортировки для строки данных.
+
+            Args:
+                row (list): Список значений ячеек текущей строки.
+
+            Returns:
+                int: Числовой код группы (0 - add, 1 - обычные, 2 - возврат, 3 - close).
+            """
+            status = str(row[status_col - 1]).strip().lower() if status_col and row[status_col - 1] is not None else ""
+            perevozrat = row[return_col - 1] if return_col and len(row) >= return_col else 0
+
+            try:
+                p_val = float(perevozrat)
+            except (ValueError, TypeError):
+                p_val = 0 if perevozrat in (None, "", "0") else 1
+
+            if status == "add":
+                return 0
+            if p_val != 0:
+                return 2
+            if status.startswith("close") or status.startswith("сlose"):
+                return 3
+            return 1
+
+        sorted_rows = sorted(rows_data, key=_sort_key)
+
+        add_fill = PatternFill(start_color="D8E4BC", end_color="D8E4BC", fill_type="solid")
+        close_fill = PatternFill(start_color="E6B8B7", end_color="E6B8B7", fill_type="solid")
+        return_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+
+        def _parse_and_clean_date(val):
+            """Принудительно извлекает дату и возвращает строку строго в формате DD.MM.YYYY.
+
+            Удаляет временную составляющую (часы, минуты) и обрабатывает различные
+            входящие форматы (ISO, RU, Slash).
+
+            Args:
+                val (Any): Исходное значение ячейки (объект datetime, строка или None).
+
+            Returns:
+                str | Any: Дата в виде строки 'DD.MM.YYYY' при успешном парсинге,
+                    исходное значение в противном случае.
+            """
+
+            if val is None:
+                return val
+
+            if hasattr(val, "strftime"):
+                return val.strftime("%d.%m.%Y")
+
+            if isinstance(val, str):
+                val_str = val.strip()
+
+                match_ru = re.search(r"(\d{2})\.(\d{2})\.(\d{4})", val_str)
+                if match_ru:
+                    return f"{match_ru.group(1)}.{match_ru.group(2)}.{match_ru.group(3)}"
+
+                match_iso = re.search(r"(\d{4})-(\d{2})-(\d{2})", val_str)
+                if match_iso:
+                    return f"{match_iso.group(3)}.{match_iso.group(2)}.{match_iso.group(1)}"
+
+                match_slash = re.search(r"(\d{2})/(\d{2})/(\d{4})", val_str)
+                if match_slash:
+                    return f"{match_slash.group(1)}.{match_slash.group(2)}.{match_slash.group(3)}"
+
+            return val
+
+        date_col_indices = {headers.get(col) for col in date_columns if col in headers}
+
+        for r_idx, row_vals in enumerate(sorted_rows, start=3):
+            group = _sort_key(row_vals)
+
+            if num_col:
+                row_vals[num_col - 1] = r_idx - 2
+
+            for c_idx, val in enumerate(row_vals, start=1):
+                if c_idx in date_col_indices and val is not None:
+                    val = _parse_and_clean_date(val)
+
+                cell = ws.cell(row=r_idx, column=c_idx)
+                cell.value = val
+                cell.border = thin_border
+                cell.font = arial_font
+
+                if c_idx in date_col_indices:
+                    cell.number_format = "DD.MM.YYYY"
+                    cell.alignment = date_alignment
+
+                if group == 0:
+                    cell.fill = add_fill
+                elif group == 2:
+                    cell.fill = return_fill
+                elif group == 3:
+                    cell.fill = close_fill
+                else:
+                    cell.fill = PatternFill(fill_type=None)
+
+        max_col_letter = get_column_letter(ws.max_column)
+        ws.auto_filter.ref = f"A2:{max_col_letter}{ws.max_row}"
+
+        fixed_widths = {
+            "# в33": 40 / 7,
+            "Дата рождения": 85 / 7,
+            "Место рождения": 285 / 7,
+            "Серия-Номер": 95 / 7,
+            "Дата выдачи": 100 / 7,
+            "Кем выдан": 300 / 7,
+            "Код подразделения": 115 / 7,
+            "Уникальный идентификатор договора (сделки) БАНКА": 285 / 7,
+            "Дата согласия на обработку ПДН (дата договора)": 95 / 7,
+            "Статус долга (Операция)": 100 / 7,
+            "Дата создания (дата передачи цессии)": 115 / 7,
+            "Сумма последнего возрата": 135 / 7,
+            "Дата последнего возврата": 125 / 7,
+            "ВОЗВРАТ": 7 / 7,
+        }
+
+        for col_name, width in fixed_widths.items():
+            if col_name in headers:
+                ws.column_dimensions[get_column_letter(headers[col_name])].width = width
+
+        auto_headers = [
+            "ИД договора",
+            "Ключевое поле",
+            "Фамилия",
+            "Имя",
+            "Отчество",
+            "Дата согласия на обработку ПДН (дата договора)",
+            "Статус долга (Операция)",
+            "Дата создания (дата передачи цессии)",
+            "Общая сумма долга",
+            "Остаток долга",
+            "Сумма последнего возрата",
+            "Дата последнего возврата",
+            "Перевозврат",
+            "Цессия",
+        ]
+
+        for col_name in auto_headers:
+            if col_name in headers and col_name not in fixed_widths:
+                col_idx = headers[col_name]
+                col_letter = get_column_letter(col_idx)
+                max_len = 0
+                for row in ws.iter_rows(min_row=2, max_col=col_idx, min_col=col_idx):
+                    if row[0].value:
+                        max_len = max(max_len, len(str(row[0].value)))
+                ws.column_dimensions[col_letter].width = max_len + 2
+
+        wb.save(path)
+        logger.success("Кастомизация Excel файла успешно завершена.")
+        return True
+
+    except Exception as e:
+        logger.exception(f"Ошибка при обработке Excel: {e}")
+        return False
